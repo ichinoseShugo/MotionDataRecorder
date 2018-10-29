@@ -5,8 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MotionDataRecorder"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
-    </Grid>
+        Title="MainWindow" SizeToContent="WidthAndHeight" Loaded="Window_Loaded" Closing="Window_Closing">
+    <StackPanel>
+        <Grid Margin="10">
+            <Image x:Name="ImageColor" Width="640" Height="360" />
+            <Canvas x:Name="CanvasBody"  Width="640" Height="360"/>
+        </Grid>
+        <StackPanel Orientation="Vertical">
+            <Button x:Name="KinectButton" Content="KinectOpen" Click="KinectButton_Click"/>
+            <TextBlock x:Name="Text1" Text="text1"/>
+            <TextBlock x:Name="Text2" Text="text2"/>
+            <TextBlock x:Name="Text3" Text="text3"/>
+        </StackPanel>
+    </StackPanel>
 </Window>

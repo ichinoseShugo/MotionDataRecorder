@@ -13,6 +13,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
+using Microsoft.Kinect;
+
+
 namespace MotionDataRecorder
 {
     /// <summary>
@@ -20,9 +23,31 @@ namespace MotionDataRecorder
     /// </summary>
     public partial class MainWindow : Window
     {
+        KinectManager kinectManager = null;
+
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            //kinectManager = new KinectManager(this);
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            kinectManager.Close();
+        }
+
+        private void KinectButton_Click(object sender, RoutedEventArgs e)
+        {
+            Console.WriteLine("kinect button click");
+            if(kinectManager == null)
+            {
+                Console.WriteLine("kinect open");
+                kinectManager = new KinectManager(this);
+            }
         }
     }
 }

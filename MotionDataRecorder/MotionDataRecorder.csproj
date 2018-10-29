@@ -33,7 +33,95 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="avenue.core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\avenue.core.dll</HintPath>
+    </Reference>
+    <Reference Include="avenue.filing, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\avenue.filing.dll</HintPath>
+    </Reference>
+    <Reference Include="libpxcclr.cs, Version=10.0.26.396, Culture=neutral, PublicKeyToken=ca106b2214526f83, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\RealSense\libpxcclr.cs.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Kinect\Microsoft.Kinect.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.data, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.data.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.dataelement, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.dataelement.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.dataelement.status, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.dataelement.status.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.filing.midi, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.filing.midi.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.filing.midi.chunk, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.filing.midi.chunk.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.filing.midi.midifile, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.filing.midi.midifile.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.midiport.bridge, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.midiport.bridge.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.midiport.core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.midiport.core.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.midiport.input, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.midiport.input.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.midiport.input.core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.midiport.input.core.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.midiport.output, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.midiport.output.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.midiport.output.core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.midiport.output.core.dll</HintPath>
+    </Reference>
+    <Reference Include="nextmidi.time, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Midi\nextmidi.time.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
@@ -62,6 +150,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="KinectManager.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -93,5 +182,43 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="libpxccpp2c.dll" />
+    <Content Include="References\Kinect\Microsoft.Kinect.dll" />
+    <Content Include="References\Midi\avenue.core.dll" />
+    <Content Include="References\RealSense\libpxcclr.cs.dll" />
+    <Resource Include="Resources\GreyBack.png" />
+    <Resource Include="References\Midi\avenue.core.xml" />
+    <Content Include="References\Midi\avenue.filing.dll" />
+    <Resource Include="References\Midi\avenue.filing.xml" />
+    <Content Include="References\Midi\nextmidi.data.dll" />
+    <Resource Include="References\Midi\nextmidi.data.xml" />
+    <Content Include="References\Midi\nextmidi.dataelement.dll" />
+    <Content Include="References\Midi\nextmidi.dataelement.status.dll" />
+    <Resource Include="References\Midi\nextmidi.dataelement.status.xml" />
+    <Resource Include="References\Midi\nextmidi.dataelement.xml" />
+    <Content Include="References\Midi\nextmidi.filing.midi.chunk.dll" />
+    <Resource Include="References\Midi\nextmidi.filing.midi.chunk.xml" />
+    <Content Include="References\Midi\nextmidi.filing.midi.dll" />
+    <Content Include="References\Midi\nextmidi.filing.midi.midifile.dll" />
+    <Resource Include="References\Midi\nextmidi.filing.midi.midifile.xml" />
+    <Resource Include="References\Midi\nextmidi.filing.midi.xml" />
+    <Content Include="References\Midi\nextmidi.midiport.bridge.dll" />
+    <Resource Include="References\Midi\nextmidi.midiport.bridge.xml" />
+    <Content Include="References\Midi\nextmidi.midiport.core.dll" />
+    <Resource Include="References\Midi\nextmidi.midiport.core.xml" />
+    <Content Include="References\Midi\nextmidi.midiport.input.core.dll" />
+    <Resource Include="References\Midi\nextmidi.midiport.input.core.xml" />
+    <Content Include="References\Midi\nextmidi.midiport.input.dll" />
+    <Resource Include="References\Midi\nextmidi.midiport.input.xml" />
+    <Content Include="References\Midi\nextmidi.midiport.output.core.dll" />
+    <Resource Include="References\Midi\nextmidi.midiport.output.core.xml" />
+    <Content Include="References\Midi\nextmidi.midiport.output.dll" />
+    <Resource Include="References\Midi\nextmidi.midiport.output.xml" />
+    <Content Include="References\Midi\nextmidi.time.dll" />
+    <Resource Include="References\Midi\nextmidi.time.xml" />
+    <Resource Include="References\Kinect\Microsoft.Kinect.xml" />
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
