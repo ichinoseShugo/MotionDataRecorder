@@ -9,13 +9,26 @@
     <StackPanel>
         <Grid Margin="10">
             <Image x:Name="ImageColor" Width="640" Height="360" />
-            <Canvas x:Name="CanvasBody"  Width="640" Height="360"/>
+            <Canvas x:Name="CanvasBody" Width="640" Height="360" />
         </Grid>
         <StackPanel Orientation="Vertical">
             <Button x:Name="KinectButton" Content="KinectOpen" Click="KinectButton_Click"/>
-            <TextBlock x:Name="Text1" Text="text1"/>
-            <TextBlock x:Name="Text2" Text="text2"/>
-            <TextBlock x:Name="Text3" Text="text3"/>
+            <Button x:Name="RealSenseButton" Content="RealSenseOpen" Click="RealSenseButton_Click"/>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="Text1" Width="100" Text="text1"/>
+                <TextBlock x:Name="Text2" Width="100" Text="text2"/>
+                <TextBlock x:Name="Text3" Width="100" Text="text3"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="Text4" Width="100" Text="text1"/>
+                <TextBlock x:Name="Text5" Width="100" Text="text2"/>
+                <TextBlock x:Name="Text6" Width="100" Text="text3"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="Text7" Width="100" Text="text1"/>
+                <TextBlock x:Name="Text8" Width="100" Text="text2"/>
+                <TextBlock x:Name="Text9" Width="100" Text="text3"/>
+            </StackPanel>
         </StackPanel>
     </StackPanel>
 </Window>
