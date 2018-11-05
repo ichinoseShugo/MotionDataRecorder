@@ -191,6 +191,7 @@
     <Content Include="References\Kinect\Microsoft.Kinect.dll" />
     <Content Include="References\Midi\avenue.core.dll" />
     <Content Include="References\RealSense\libpxcclr.cs.dll" />
+    <Resource Include="KinectJointType.txt" />
     <Resource Include="Resources\GreyBack.png" />
     <Resource Include="References\Midi\avenue.core.xml" />
     <Content Include="References\Midi\avenue.filing.dll" />

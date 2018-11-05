@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -109,7 +110,8 @@ namespace MotionDataRecorder
         private void bodyFrameReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
         {
             UpdateBodyFrame(e);
-            DrawBodyFrame();
+            RecordJoints();
+            //DrawBodyFrame();
         }
 
         private void UpdateBodyFrame(BodyFrameArrivedEventArgs e)
@@ -120,9 +122,34 @@ namespace MotionDataRecorder
                 {
                     return;
                 }
-
                 // ボディデータを取得する
                 bodyFrame.GetAndRefreshBodyData(bodies);
+            }
+        }
+
+        private void RecordJoints()
+        {
+            int bodycount = 0;
+            foreach(var body in bodies)
+            {
+                if (body == null)
+                {
+                    Console.WriteLine("null body");
+                    return;
+                }
+                if (body.IsTracked) bodycount++;
+            }
+            if (bodycount > 1)
+            {
+                Console.WriteLine("Recognize too many people");
+                return;
+            }
+            foreach (var body in bodies)
+            {
+                foreach (var joint in body.Joints)
+                {
+
+                }
             }
         }
 
@@ -145,7 +172,7 @@ namespace MotionDataRecorder
                 Height = R,
                 Fill = brush,
             };
-
+            var d = joint.Position;
             // カメラ座標系をDepth座標系に変換する
             var point = kinect.CoordinateMapper.MapCameraPointToColorSpace(joint.Position);
             if ((point.X < 0) || (point.Y < 0))
