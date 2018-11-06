@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,21 +14,29 @@ namespace MotionDataRecorder
 {
     public class KinectManager
     {
-        MainWindow main;
+        private MainWindow main;
 
-        KinectSensor kinect;
+        private KinectSensor kinect;
 
-        ColorFrameReader colorFrameReader;
-        FrameDescription colorFrameDesc;
-        byte[] colorBuffer;
+        private ColorFrameReader colorFrameReader;
+        private FrameDescription colorFrameDesc;
+        private byte[] colorBuffer;
+        /// <summary> color frameの高さを実際のimageの高さで割ったサイズの比率 </summary>
+        private double imageRate = 1;
 
-        BodyFrameReader bodyFrameReader;
-        Body[] bodies;
+        private BodyFrameReader bodyFrameReader;
+        private Body[] bodies;
+
+        /// <summary> Kinect座標書き込み用ストリーム( time, x, y, z ) </summary>
+        private StreamWriter kinectWriter = null;
+        /// <summary> 時間計測用ストップウォッチ </summary>
+        private static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
 
         public KinectManager(MainWindow mainWindow)
         {
             main = mainWindow;
             InitializeKinect();
+            imageRate = colorFrameDesc.Height / main.ImageColor.Height;
         }
 
         private void InitializeKinect()
@@ -42,7 +52,7 @@ namespace MotionDataRecorder
                 kinect.Open();
 
                 //抜き差しイベントを設定
-                kinect.IsAvailableChanged += kinect_IsAvailableChanged;
+                kinect.IsAvailableChanged += Kinect_IsAvailableChanged;
                 //フレームの準備
                 PrepareFrame();
             }
@@ -61,7 +71,7 @@ namespace MotionDataRecorder
             if (colorFrameReader == null)
             {
                 colorFrameReader = kinect.ColorFrameSource.OpenReader();
-                colorFrameReader.FrameArrived += colorFrameReader_FrameArrived;
+                colorFrameReader.FrameArrived += ColorFrameReader_FrameArrived;
             }
 
             // ボディーリーダーを開く
@@ -69,11 +79,11 @@ namespace MotionDataRecorder
             {
                 bodies = new Body[kinect.BodyFrameSource.BodyCount];  // Bodyを入れる配列を作る
                 bodyFrameReader = kinect.BodyFrameSource.OpenReader();
-                bodyFrameReader.FrameArrived += bodyFrameReader_FrameArrived;
+                bodyFrameReader.FrameArrived += BodyFrameReader_FrameArrived;
             }
         }
 
-        private void kinect_IsAvailableChanged(object sender, IsAvailableChangedEventArgs e)
+        private void Kinect_IsAvailableChanged(object sender, IsAvailableChangedEventArgs e)
         {
             // Kinectが接続された
             if (e.IsAvailable)
@@ -87,7 +97,7 @@ namespace MotionDataRecorder
             }
         }
 
-        private void colorFrameReader_FrameArrived(object sender, ColorFrameArrivedEventArgs e)
+        private void ColorFrameReader_FrameArrived(object sender, ColorFrameArrivedEventArgs e)
         {
             // カラーフレームを取得する
             using (var colorFrame = e.FrameReference.AcquireFrame())
@@ -107,7 +117,7 @@ namespace MotionDataRecorder
             }
         }
 
-        private void bodyFrameReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
+        private void BodyFrameReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
         {
             UpdateBodyFrame(e);
             RecordJoints();
@@ -127,6 +137,12 @@ namespace MotionDataRecorder
             }
         }
 
+        CameraSpacePoint op;
+        bool firstrecog = true;
+        /// <summary> 5000mG = 49.03325 (m/s^2) </summary>
+        double border = 0;
+        bool over = false;
+        System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
         private void RecordJoints()
         {
             int bodycount = 0;
@@ -134,6 +150,7 @@ namespace MotionDataRecorder
             {
                 if (body == null)
                 {
+                    Console.WriteLine(bodies);
                     Console.WriteLine("null body");
                     return;
                 }
@@ -144,11 +161,39 @@ namespace MotionDataRecorder
                 Console.WriteLine("Recognize too many people");
                 return;
             }
-            foreach (var body in bodies)
+
+            main.CanvasBody.Children.Clear();
+            foreach (var body in bodies.Where(b => b.IsTracked))
             {
+                if (firstrecog)
+                {
+                    op = body.Joints[JointType.HandRight].Position;
+                    firstrecog = false;
+                    return;
+                }
+                //var o = body.JointOrientations[JointType.HandRight].Orientation;
+                //main.Text1.Text = o.W.ToString();
+                //main.Text2.Text = o.X.ToString();
+                //main.Text3.Text = o.Y.ToString();
+                //main.Text4.Text = o.Z.ToString();
+                //var s = body.Joints[JointType.HandRight];
+                var p = body.Joints[JointType.HandRight].Position;
+                //double m = Math.Sqrt( Math.Pow(p.X - op.X, 2) + Math.Pow(p.Y - op.Y, 2) + Math.Pow(p.Z - op.Z, 2) );
+                double m = p.Z - op.Z;
+                double ms = m / 0.035;
+                double mss = ms / 0.035;
+                //main.Text1.Text = ms.ToString();
+                op = p;
+                if (kinectWriter != null)
+                {
+                    //var position = body.Joints[JointType.HandRight].Position;
+                    var mill = stopwatch.ElapsedMilliseconds;
+                    //kinectWriter.WriteLine(mill + "," + position.X + "," + position.Y + "," + position.Z);
+                    kinectWriter.WriteLine(mill + "," + m + "," + ms + "," + mss);
+                }
                 foreach (var joint in body.Joints)
                 {
-
+                    DrawEllipse(joint.Value.Position, 10, Brushes.Blue);
                 }
             }
         }
@@ -160,11 +205,11 @@ namespace MotionDataRecorder
             var rHand = bodies[0].Joints[JointType.HandRight];
             if (rHand.TrackingState == TrackingState.Tracked)
             {
-                DrawEllipse(rHand, 10, Brushes.Blue);
+                //DrawEllipse(rHand, 10, Brushes.Blue);
             }
         }
 
-        private void DrawEllipse(Joint joint, int R, Brush brush)
+        private void DrawEllipse(CameraSpacePoint position, int R, Brush brush)
         {
             var ellipse = new Ellipse()
             {
@@ -172,18 +217,41 @@ namespace MotionDataRecorder
                 Height = R,
                 Fill = brush,
             };
-            var d = joint.Position;
-            // カメラ座標系をDepth座標系に変換する
-            var point = kinect.CoordinateMapper.MapCameraPointToColorSpace(joint.Position);
+
+            var point = kinect.CoordinateMapper.MapCameraPointToColorSpace(position);
             if ((point.X < 0) || (point.Y < 0))
             {
                 return;
             }
 
-            Canvas.SetLeft(ellipse, (point.X - (R / 2)) / 2);
-            Canvas.SetTop(ellipse, (point.Y - (R / 2)) / 2);
+            Canvas.SetLeft(ellipse, (point.X - (R / 2)) / imageRate);
+            Canvas.SetTop(ellipse, (point.Y - (R / 2)) / imageRate);
 
             main.CanvasBody.Children.Add(ellipse);
+        }
+
+        public void StartRecord()
+        {
+            var dt = DateTime.Now;
+            string now = dt.Year + Digits(dt.Month) + Digits(dt.Day) + Digits(dt.Hour) + Digits(dt.Minute) + Digits(dt.Second);
+            kinectWriter = new StreamWriter("../../../Data/Kinect/" + now + ".csv", true);
+            stopwatch.Start();
+            Console.WriteLine("start record");
+        }
+
+        /// <summary> 1桁の場合の桁の補正：1時1分→0101 </summary>
+        static public String Digits(int date)
+        {
+            if (date / 10 == 0) return "0" + date;
+            else return date.ToString();
+        }
+
+        public void CloseRecord()
+        {
+            stopwatch.Stop();
+            kinectWriter.Close();
+            kinectWriter = null;
+            Console.WriteLine("stop record");
         }
 
         public void Close()
@@ -204,6 +272,10 @@ namespace MotionDataRecorder
             {
                 kinect.Close();
                 kinect = null;
+            }
+            if (kinectWriter != null)
+            {
+                kinectWriter.Close();
             }
         }
     }

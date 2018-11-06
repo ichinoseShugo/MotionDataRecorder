@@ -14,6 +14,7 @@
         <StackPanel Orientation="Vertical">
             <Button x:Name="KinectButton" Content="KinectOpen" Click="KinectButton_Click"/>
             <Button x:Name="RealSenseButton" Content="RealSenseOpen" Click="RealSenseButton_Click"/>
+            <ToggleButton x:Name="Record" Content="Record" Checked="Record_Click" Unchecked="Record_Unchecked"/>
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="Text1" Width="100" Text="text1"/>
                 <TextBlock x:Name="Text2" Width="100" Text="text2"/>

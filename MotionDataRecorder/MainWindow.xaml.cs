@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,8 +40,14 @@ namespace MotionDataRecorder
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            kinectManager.Close();
-            realSenseManager.Close();
+            if(kinectManager != null)
+            {
+                kinectManager.Close();
+            }
+            if (realSenseManager != null)
+            {
+                realSenseManager.Close();
+            }
         }
 
         private void KinectButton_Click(object sender, RoutedEventArgs e)
@@ -61,6 +68,16 @@ namespace MotionDataRecorder
                 Console.WriteLine("realsense open");
                 realSenseManager = new RealSenseManager(this);
             }
+        }
+
+        private void Record_Click(object sender, RoutedEventArgs e)
+        {
+            kinectManager.StartRecord();
+        }
+
+        private void Record_Unchecked(object sender, RoutedEventArgs e)
+        {
+            kinectManager.CloseRecord();
         }
     }
 }

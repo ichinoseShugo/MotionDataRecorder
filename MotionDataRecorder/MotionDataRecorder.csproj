@@ -224,6 +224,8 @@
     <Resource Include="References\Midi\nextmidi.time.xml" />
     <Resource Include="References\Kinect\Microsoft.Kinect.xml" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Data\Kinect\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
