@@ -12,9 +12,10 @@
             <Canvas x:Name="CanvasBody" Width="640" Height="360" />
         </Grid>
         <StackPanel Orientation="Vertical">
-            <Button x:Name="KinectButton" Content="KinectOpen" Click="KinectButton_Click"/>
-            <Button x:Name="RealSenseButton" Content="RealSenseOpen" Click="RealSenseButton_Click"/>
+            <Button x:Name="KinectButton" Content="KinectOpen"/>
+            <Button x:Name="RealSenseButton" Content="RealSenseOpen"/>
             <ToggleButton x:Name="Record" Content="Record" Checked="Record_Click" Unchecked="Record_Unchecked"/>
+            <Button x:Name="Midi" Content="Midi" Click="Midi_Click"/>
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="Text1" Width="100" Text="text1"/>
                 <TextBlock x:Name="Text2" Width="100" Text="text2"/>

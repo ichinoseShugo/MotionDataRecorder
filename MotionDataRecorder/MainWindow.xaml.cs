@@ -79,5 +79,76 @@ namespace MotionDataRecorder
         {
             kinectManager.CloseRecord();
         }
+
+        int i = 0;
+        int s = 0;
+        bool flag = false;
+        //double border = 49.03325;
+        double border = 49.03325;
+        Point op = new Point { X = 0, Y = 0 };
+        double v = 0;
+        private void Window_MouseMove(object sender, MouseEventArgs e)
+        {
+            double t = (e.Timestamp - i)*0.001;
+            if (t == 0) return;
+            Point p = e.GetPosition(this);
+            p.X = p.X * 0.345 / 1980;
+            p.Y = p.Y * 0.194 / 1080;
+            double m = Math.Sqrt(Math.Pow((p.X - op.X),2) + Math.Pow((p.Y - op.Y), 2));
+            double ms = m / t;
+            double mss = (ms - v) / t;
+            //Console.WriteLine(m);
+            //Console.WriteLine(ms);
+            //Console.WriteLine(mss);
+            //Console.WriteLine();
+            if (mss > border)
+            {
+                if (flag == false)
+                {
+                    s = e.Timestamp;
+                    flag = true;
+                    //Console.WriteLine(1);
+                }
+                else
+                {
+                    //Console.WriteLine(2);
+                }
+            }
+            if (mss < border)
+            {
+                if (flag == true)
+                {
+                    //Console.WriteLine(3);
+                    int st = e.Timestamp - s;
+                    if (st > 15 && st < 25)
+                    {
+                        Console.Beep();
+                        //Console.WriteLine(4);
+                    }
+                    flag = false;
+                }
+                else
+                {
+                    //Console.WriteLine(5);
+                }
+            }
+            Text1.Text = "X=" + p.X + ", Y=" + p.Y;
+            Text2.Text = e.Timestamp.ToString();
+            Text3.Text = t.ToString();
+            Text4.Text = m.ToString();
+            Text5.Text = ms.ToString();
+            Text6.Text = mss.ToString();
+            i = e.Timestamp;
+            op = p;
+            v = ms;
+        }
+
+        public MidiManager midiManager = new MidiManager();
+        private void Midi_Click(object sender, RoutedEventArgs e)
+        {
+            midiManager.PlayMidi();
+            //midiManager.OnNote(60);
+            //Console.Beep();
+        }
     }
 }

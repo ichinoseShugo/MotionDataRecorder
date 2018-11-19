@@ -66,6 +66,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>References\RealSense\libpxcclr.cs.dll</HintPath>
     </Reference>
+    <Reference Include="LightBuzz.Vitruvius, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>References\Kinect\LightBuzz.Vitruvius.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>References\Kinect\Microsoft.Kinect.dll</HintPath>
@@ -143,6 +147,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Constants.cs" />
+    <Compile Include="MidiManager.cs" />
     <Compile Include="RealSenseManager.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -188,6 +193,8 @@
     <Content Include="libpxccpp2c.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="References\Kinect\LightBuzz.Vitruvius.dll" />
+    <Resource Include="References\Kinect\LightBuzz.Vitruvius.XML" />
     <Content Include="References\Kinect\Microsoft.Kinect.dll" />
     <Content Include="References\Midi\avenue.core.dll" />
     <Content Include="References\RealSense\libpxcclr.cs.dll" />

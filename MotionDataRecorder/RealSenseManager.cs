@@ -32,7 +32,19 @@ namespace MotionDataRecorder
         public RealSenseManager(MainWindow mainWindow)
         {
             main = mainWindow;
-            InitializeRealSense();
+            //InitializeRealSense();
+            sw.Start();
+            CompositionTarget.Rendering += test;
+        }
+
+        System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+        long s = 0;
+        private void test(object sender, EventArgs e)
+        {
+            var t = sw.ElapsedMilliseconds;
+            //main.Text1.Text = (t-s).ToString();
+            Console.WriteLine( t - s );
+            s = t;
         }
 
         private void InitializeRealSense()

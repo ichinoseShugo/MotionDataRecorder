@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
 using Microsoft.Kinect;
+using LightBuzz.Vitruvius;
 
 namespace MotionDataRecorder
 {
@@ -23,6 +24,10 @@ namespace MotionDataRecorder
         private byte[] colorBuffer;
         /// <summary> color frameの高さを実際のimageの高さで割ったサイズの比率 </summary>
         private double imageRate = 1;
+        /// <summary> 画像保存用bitmap source </summary>
+        //public static BitmapSource bitmapSource = null;
+        /// <summary> frame数のカウント </summary>
+        //static int frameCount = 0;
 
         private BodyFrameReader bodyFrameReader;
         private Body[] bodies;
@@ -32,9 +37,11 @@ namespace MotionDataRecorder
         /// <summary> 時間計測用ストップウォッチ </summary>
         private static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
 
+        private MidiManager midi = null;
         public KinectManager(MainWindow mainWindow)
         {
             main = mainWindow;
+            midi = mainWindow.midiManager;
             InitializeKinect();
             imageRate = colorFrameDesc.Height / main.ImageColor.Height;
         }
@@ -70,6 +77,7 @@ namespace MotionDataRecorder
             // カラーリーダーを開く
             if (colorFrameReader == null)
             {
+
                 colorFrameReader = kinect.ColorFrameSource.OpenReader();
                 colorFrameReader.FrameArrived += ColorFrameReader_FrameArrived;
             }
@@ -80,6 +88,7 @@ namespace MotionDataRecorder
                 bodies = new Body[kinect.BodyFrameSource.BodyCount];  // Bodyを入れる配列を作る
                 bodyFrameReader = kinect.BodyFrameSource.OpenReader();
                 bodyFrameReader.FrameArrived += BodyFrameReader_FrameArrived;
+                frameTimer.Start();
             }
         }
 
@@ -114,12 +123,48 @@ namespace MotionDataRecorder
                 // ビットマップにする
                 main.ImageColor.Source = BitmapSource.Create(colorFrameDesc.Width, colorFrameDesc.Height, 96, 96,
                     PixelFormats.Bgra32, null, colorBuffer, colorFrameDesc.Width * (int)colorFrameDesc.BytesPerPixel);
+
+                //bitmapSource = BitmapSource.Create(colorFrameDesc.Width, colorFrameDesc.Height, 96, 96,
+                //    PixelFormats.Bgra32, null, colorBuffer, colorFrameDesc.Width * (int)colorFrameDesc.BytesPerPixel);
+
+                //main.ImageColor.Source = bitmapSource;
+                //ImageColor.SetCurrentValue(Image.SourceProperty, bitmapSource);
+                /*
+                if (RecordPoints.IsChecked == true && frameCount % 3 == 0)
+                {
+                    using (Stream stream =
+                    new FileStream(pathSaveFolder + "image/" + StopWatch.ElapsedMilliseconds + ".jpg", FileMode.Create))
+                    {
+                        JpegBitmapEncoder encoder = new JpegBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+                        encoder.Save(stream);
+                        stream.Close();
+                    }
+                }
+                frameCount++;
+                */
             }
         }
 
         private void BodyFrameReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
         {
             UpdateBodyFrame(e);
+            int bodycount = 0;
+            foreach (var body in bodies)
+            {
+                if (body == null)
+                {
+                    Console.WriteLine(bodies);
+                    Console.WriteLine("null body");
+                    return;
+                }
+                if (body.IsTracked) bodycount++;
+            }
+            if (bodycount > 1)
+            {
+                Console.WriteLine("Recognize too many people");
+                return;
+            }
             RecordJoints();
             //DrawBodyFrame();
         }
@@ -137,65 +182,111 @@ namespace MotionDataRecorder
             }
         }
 
-        CameraSpacePoint op;
-        bool firstrecog = true;
-        /// <summary> 5000mG = 49.03325 (m/s^2) </summary>
-        double border = 0;
-        bool over = false;
-        System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
         private void RecordJoints()
         {
-            int bodycount = 0;
-            foreach(var body in bodies)
-            {
-                if (body == null)
-                {
-                    Console.WriteLine(bodies);
-                    Console.WriteLine("null body");
-                    return;
-                }
-                if (body.IsTracked) bodycount++;
-            }
-            if (bodycount > 1)
-            {
-                Console.WriteLine("Recognize too many people");
-                return;
-            }
-
-            main.CanvasBody.Children.Clear();
             foreach (var body in bodies.Where(b => b.IsTracked))
             {
-                if (firstrecog)
-                {
-                    op = body.Joints[JointType.HandRight].Position;
-                    firstrecog = false;
-                    return;
-                }
-                //var o = body.JointOrientations[JointType.HandRight].Orientation;
-                //main.Text1.Text = o.W.ToString();
-                //main.Text2.Text = o.X.ToString();
-                //main.Text3.Text = o.Y.ToString();
-                //main.Text4.Text = o.Z.ToString();
-                //var s = body.Joints[JointType.HandRight];
+                Tap(body);
+                //var hand = body.Joints[JointType.HandRight].Position;
                 var p = body.Joints[JointType.HandRight].Position;
-                //double m = Math.Sqrt( Math.Pow(p.X - op.X, 2) + Math.Pow(p.Y - op.Y, 2) + Math.Pow(p.Z - op.Z, 2) );
-                double m = p.Z - op.Z;
-                double ms = m / 0.035;
-                double mss = ms / 0.035;
-                //main.Text1.Text = ms.ToString();
-                op = p;
+                //s = stopwatch.ElapsedMilliseconds;
+                //var elbow = body.Joints[JointType.ElbowRight].Position;
+                //var shoulder = body.Joints[JointType.ShoulderRight].Position;
+                //var arm1 = Math.Sqrt(Math.Pow(hand.X - elbow.X, 2) + Math.Pow(hand.Y - elbow.Y, 2) + Math.Pow(hand.Z - elbow.Z, 2));
+                //var arm2 = Math.Sqrt(Math.Pow(elbow.X - shoulder.X, 2) + Math.Pow(elbow.Y - shoulder.Y, 2) + Math.Pow(elbow.Z - shoulder.Z, 2));
+                //var arm = arm1 + arm2;
+                //var arm = Math.Sqrt(Math.Pow(hand.X - shoulder.X, 2) + Math.Pow(hand.Y - shoulder.Y, 2) + Math.Pow(hand.Z - shoulder.Z, 2));
+                //main.Text1.Text = arm.ToString();
                 if (kinectWriter != null)
                 {
-                    //var position = body.Joints[JointType.HandRight].Position;
-                    var mill = stopwatch.ElapsedMilliseconds;
-                    //kinectWriter.WriteLine(mill + "," + position.X + "," + position.Y + "," + position.Z);
-                    kinectWriter.WriteLine(mill + "," + m + "," + ms + "," + mss);
+                    //kinectWriter.WriteLine(s + "," + comAbs);
+                    //s = stopwatch.ElapsedMilliseconds;
+                    //kinectWriter.WriteLine(s + "," + p.X + "," + p.Y + "," + p.Z);
+                    //kinectWriter.WriteLine(s + "," + m + "," + v + "," + a);
                 }
-                foreach (var joint in body.Joints)
+
+                main.CanvasBody.Children.Clear();
+                DrawEllipse(p, 10, Brushes.Blue);
+                //DrawEllipse(shoulder, 10, Brushes.Blue);
+            }
+        }
+
+        bool firstrecog = true;
+        CameraSpacePoint o;
+        double v0 = 0;
+        double a0 = 0;
+        double t0 = 0;
+        double angle0 = 0;
+        System.Diagnostics.Stopwatch frameTimer = new System.Diagnostics.Stopwatch();
+
+        double border = 20;
+        //double border = 49.03325;
+        bool over = false;
+        System.Diagnostics.Stopwatch transitTimer = new System.Diagnostics.Stopwatch();
+        private void Tap(Body body)
+        {
+            if (firstrecog)
+            {
+                o = body.Joints[JointType.HandRight].Position;
+                firstrecog = false;
+                t0 = frameTimer.ElapsedMilliseconds;
+                return;
+            }
+            var p = body.Joints[JointType.HandRight].Position;
+            var wrist = body.Joints[JointType.WristLeft].Position;
+            var elbow = body.Joints[JointType.ElbowRight].Position;
+            double angle = wrist.Angle(elbow, p);
+            var t = frameTimer.ElapsedMilliseconds;
+            double mill = (t - t0)/1000;
+            double v = Math.Sqrt(Math.Pow(p.X - o.X, 2) + Math.Pow(p.Y - o.Y, 2) + Math.Pow(p.Z - o.Z, 2))/mill;
+            double a = (v - v0) / mill;
+            double dangle = angle - angle0;
+            Console.WriteLine(a);
+            if (a > border)
+            {
+                if (over)
                 {
-                    DrawEllipse(joint.Value.Position, 10, Brushes.Blue);
+                }
+                else
+                {
+                    transitTimer.Start();
+                    over = true;
                 }
             }
+            else
+            {
+                if (over)
+                {
+                    var transit = transitTimer.ElapsedMilliseconds;
+                    if(30 <= transit && transit <= 60)
+                    {
+                        midi.OnNote(60);
+                    }
+                    transitTimer.Reset();
+                    over = false;
+                }
+                else
+                {
+
+                }
+            }
+
+            /*
+            if (a < 0 && (a0 - a) > 40)
+            {
+                midi.OnNote(60);
+            }
+            */
+            if (kinectWriter != null)
+            {
+                var s = stopwatch.ElapsedMilliseconds;
+                kinectWriter.WriteLine(s + "," + t + "," + v + "," + a + "," + angle + "," + dangle);
+            }
+            o = p;
+            v0 = v;
+            a0 = a;
+            t0 = t;
+            angle0 = angle;
         }
 
         private void DrawBodyFrame()
@@ -236,7 +327,8 @@ namespace MotionDataRecorder
             string now = dt.Year + Digits(dt.Month) + Digits(dt.Day) + Digits(dt.Hour) + Digits(dt.Minute) + Digits(dt.Second);
             kinectWriter = new StreamWriter("../../../Data/Kinect/" + now + ".csv", true);
             stopwatch.Start();
-            Console.WriteLine("start record");
+            midi.PlayMidi();
+            //Console.WriteLine("start record");
         }
 
         /// <summary> 1桁の場合の桁の補正：1時1分→0101 </summary>
