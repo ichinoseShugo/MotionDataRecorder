@@ -10,6 +10,7 @@ using System.Windows.Shapes;
 
 using Microsoft.Kinect;
 using LightBuzz.Vitruvius;
+using System.Windows.Media.Media3D;
 
 namespace MotionDataRecorder
 {
@@ -88,7 +89,6 @@ namespace MotionDataRecorder
                 bodies = new Body[kinect.BodyFrameSource.BodyCount];  // Bodyを入れる配列を作る
                 bodyFrameReader = kinect.BodyFrameSource.OpenReader();
                 bodyFrameReader.FrameArrived += BodyFrameReader_FrameArrived;
-                frameTimer.Start();
             }
         }
 
@@ -182,122 +182,87 @@ namespace MotionDataRecorder
             }
         }
 
+        bool ready = true;
         private void RecordJoints()
         {
             foreach (var body in bodies.Where(b => b.IsTracked))
             {
-                Tap(body);
-                //var hand = body.Joints[JointType.HandRight].Position;
-                var p = body.Joints[JointType.HandRight].Position;
-                //s = stopwatch.ElapsedMilliseconds;
-                //var elbow = body.Joints[JointType.ElbowRight].Position;
-                //var shoulder = body.Joints[JointType.ShoulderRight].Position;
-                //var arm1 = Math.Sqrt(Math.Pow(hand.X - elbow.X, 2) + Math.Pow(hand.Y - elbow.Y, 2) + Math.Pow(hand.Z - elbow.Z, 2));
-                //var arm2 = Math.Sqrt(Math.Pow(elbow.X - shoulder.X, 2) + Math.Pow(elbow.Y - shoulder.Y, 2) + Math.Pow(elbow.Z - shoulder.Z, 2));
-                //var arm = arm1 + arm2;
-                //var arm = Math.Sqrt(Math.Pow(hand.X - shoulder.X, 2) + Math.Pow(hand.Y - shoulder.Y, 2) + Math.Pow(hand.Z - shoulder.Z, 2));
-                //main.Text1.Text = arm.ToString();
-                if (kinectWriter != null)
-                {
-                    //kinectWriter.WriteLine(s + "," + comAbs);
-                    //s = stopwatch.ElapsedMilliseconds;
-                    //kinectWriter.WriteLine(s + "," + p.X + "," + p.Y + "," + p.Z);
-                    //kinectWriter.WriteLine(s + "," + m + "," + v + "," + a);
-                }
-
-                main.CanvasBody.Children.Clear();
-                DrawEllipse(p, 10, Brushes.Blue);
-                //DrawEllipse(shoulder, 10, Brushes.Blue);
+                //RelativeHandTap(body);
+                RelativeBodyTap(body);
             }
         }
-
-        bool firstrecog = true;
-        CameraSpacePoint o;
-        double v0 = 0;
-        double a0 = 0;
-        double t0 = 0;
-        double angle0 = 0;
-        System.Diagnostics.Stopwatch frameTimer = new System.Diagnostics.Stopwatch();
-
-        double border = 20;
-        //double border = 49.03325;
-        bool over = false;
-        System.Diagnostics.Stopwatch transitTimer = new System.Diagnostics.Stopwatch();
-        private void Tap(Body body)
+      
+        private void RelativeHandTap(Body body)
         {
-            if (firstrecog)
+            var HandRight = body.Joints[JointType.HandRight].Position;
+            var HandLeft = body.Joints[JointType.HandLeft].Position;
+            var ShoulderRight = body.Joints[JointType.ShoulderRight].Position;
+            var ShoulderLeft = body.Joints[JointType.ShoulderLeft].Position;
+
+            Point3D LRs = new Point3D(ShoulderRight.X - ShoulderLeft.X, ShoulderRight.Y - ShoulderLeft.Y, ShoulderRight.Z - ShoulderLeft.Z);
+            Point3D LRh = new Point3D(HandRight.X - HandLeft.X, HandRight.Y - HandLeft.Y, HandRight.Z - HandLeft.Z);
+            double absLRs = Math.Sqrt(Math.Pow(LRs.X, 2) + Math.Pow(LRs.Y, 2) + Math.Pow(LRs.Z, 2));
+            double t = (LRs.X * LRh.X + LRs.Y * LRh.Y + LRs.Z * LRh.Z) / absLRs;
+            Point3D D = new Point3D(
+                HandLeft.X - HandRight.X + t * LRs.X,
+                HandLeft.Y - HandRight.Y + t * LRs.Y,
+                HandLeft.Z - HandRight.Z + t * LRs.Z);
+            double depth = Math.Sqrt(Math.Pow(D.X, 2) + Math.Pow(D.Y, 2) + Math.Pow(D.Z, 2));
+            var z = (HandLeft.Z - HandRight.Z) * LRs.X - (HandLeft.X - HandRight.X) * LRs.Z;
+            if (z > 0) depth *= -1;
+            if (depth < 0)
             {
-                o = body.Joints[JointType.HandRight].Position;
-                firstrecog = false;
-                t0 = frameTimer.ElapsedMilliseconds;
-                return;
-            }
-            var p = body.Joints[JointType.HandRight].Position;
-            var wrist = body.Joints[JointType.WristLeft].Position;
-            var elbow = body.Joints[JointType.ElbowRight].Position;
-            double angle = wrist.Angle(elbow, p);
-            var t = frameTimer.ElapsedMilliseconds;
-            double mill = (t - t0)/1000;
-            double v = Math.Sqrt(Math.Pow(p.X - o.X, 2) + Math.Pow(p.Y - o.Y, 2) + Math.Pow(p.Z - o.Z, 2))/mill;
-            double a = (v - v0) / mill;
-            double dangle = angle - angle0;
-            Console.WriteLine(a);
-            if (a > border)
-            {
-                if (over)
+                if (ready)
                 {
-                }
-                else
-                {
-                    transitTimer.Start();
-                    over = true;
+                    midi.OnNote(60);
+                    ready = false;
                 }
             }
             else
             {
-                if (over)
-                {
-                    var transit = transitTimer.ElapsedMilliseconds;
-                    if(30 <= transit && transit <= 60)
-                    {
-                        midi.OnNote(60);
-                    }
-                    transitTimer.Reset();
-                    over = false;
-                }
-                else
-                {
-
-                }
+                ready = true;
             }
-
-            /*
-            if (a < 0 && (a0 - a) > 40)
-            {
-                midi.OnNote(60);
-            }
-            */
-            if (kinectWriter != null)
-            {
-                var s = stopwatch.ElapsedMilliseconds;
-                kinectWriter.WriteLine(s + "," + t + "," + v + "," + a + "," + angle + "," + dangle);
-            }
-            o = p;
-            v0 = v;
-            a0 = a;
-            t0 = t;
-            angle0 = angle;
+            main.Text1.Text = depth.ToString();
+            main.Text2.Text = z.ToString();
+            main.CanvasBody.Children.Clear();
+            DrawEllipse(HandRight, 10, Brushes.Red);
+            DrawEllipse(HandLeft, 10, Brushes.Lavender);
         }
 
-        private void DrawBodyFrame()
+        double maxDist = -1;
+        private void RelativeBodyTap(Body body)
         {
-            main.CanvasBody.Children.Clear();
-
-            var rHand = bodies[0].Joints[JointType.HandRight];
-            if (rHand.TrackingState == TrackingState.Tracked)
+            var HandRight = body.Joints[JointType.HandRight].Position;
+            var ShoulderRight = body.Joints[JointType.ShoulderRight].Position;
+            var distance = Math.Sqrt(
+                Math.Pow(HandRight.X - ShoulderRight.X, 2) +
+                Math.Pow(HandRight.Y - ShoulderRight.Y, 2) +
+                Math.Pow(HandRight.Z - ShoulderRight.Z, 2));
+            if (distance > maxDist) maxDist = distance;
+            if (distance > maxDist * 0.8)
             {
-                //DrawEllipse(rHand, 10, Brushes.Blue);
+                if (ready)
+                {
+                    midi.OnNote(60);
+                    ready = false;
+                }
             }
+            else
+            {
+                ready = true;
+            }
+            main.Text1.Text = distance.ToString();
+        }
+
+        private Point3D JointToPoint3D(Body body, JointType jointType)
+        {
+            var p = body.Joints[jointType].Position;
+            return new Point3D
+            {
+                X = p.X,
+                Y = p.Y,
+                Z = p.Z,
+            };
         }
 
         private void DrawEllipse(CameraSpacePoint position, int R, Brush brush)
