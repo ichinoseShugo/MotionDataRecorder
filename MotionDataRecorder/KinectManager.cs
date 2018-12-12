@@ -182,16 +182,19 @@ namespace MotionDataRecorder
             }
         }
 
-        bool ready = true;
+        bool headReady = true;
+        bool handReady = true;
+        bool footReady = true;
         private void RecordJoints()
         {
             foreach (var body in bodies.Where(b => b.IsTracked))
             {
                 //RelativeHandTap(body);
                 RelativeBodyTap(body);
+                RelativeBodyTap2(body);
             }
         }
-      
+
         private void RelativeHandTap(Body body)
         {
             var HandRight = body.Joints[JointType.HandRight].Position;
@@ -210,20 +213,22 @@ namespace MotionDataRecorder
             double depth = Math.Sqrt(Math.Pow(D.X, 2) + Math.Pow(D.Y, 2) + Math.Pow(D.Z, 2));
             var z = (HandLeft.Z - HandRight.Z) * LRs.X - (HandLeft.X - HandRight.X) * LRs.Z;
             if (z > 0) depth *= -1;
+
             if (depth < 0)
             {
-                if (ready)
+                if (handReady)
                 {
-                    midi.OnNote(60);
-                    ready = false;
+                    OnNote(HandRight.Y);
+                    handReady = false;
                 }
             }
             else
             {
-                ready = true;
+                handReady = true;
             }
-            main.Text1.Text = depth.ToString();
-            main.Text2.Text = z.ToString();
+            //main.Text1.Text = depth.ToString();
+            //main.Text2.Text = z.ToString();
+            main.Text3.Text = HandRight.Y.ToString();
             main.CanvasBody.Children.Clear();
             DrawEllipse(HandRight, 10, Brushes.Red);
             DrawEllipse(HandLeft, 10, Brushes.Lavender);
@@ -239,21 +244,72 @@ namespace MotionDataRecorder
                 Math.Pow(HandRight.Y - ShoulderRight.Y, 2) +
                 Math.Pow(HandRight.Z - ShoulderRight.Z, 2));
             if (distance > maxDist) maxDist = distance;
-            if (distance > maxDist * 0.8)
+            if (distance > maxDist * 0.6)
             {
-                if (ready)
+                if (handReady)
                 {
-                    midi.OnNote(60);
-                    ready = false;
+                    OnNote(HandRight.Y);
+                    handReady = false;
                 }
             }
             else
             {
-                ready = true;
+                handReady = true;
             }
             main.Text1.Text = distance.ToString();
+            main.CanvasBody.Children.Clear();
+            DrawEllipse(HandRight, 10, Brushes.Red);
+            DrawEllipse(ShoulderRight, 10, Brushes.SlateGray);
         }
 
+        double maxDist2 = -1;
+        bool handReady2 = true;
+        private void RelativeBodyTap2(Body body)
+        {
+            var HandLeft = body.Joints[JointType.HandLeft].Position;
+            var ShoulderLeft = body.Joints[JointType.ShoulderLeft].Position;
+            var distance = Math.Sqrt(
+                Math.Pow(HandLeft.X - ShoulderLeft.X, 2) +
+                Math.Pow(HandLeft.Y - ShoulderLeft.Y, 2) +
+                Math.Pow(HandLeft.Z - ShoulderLeft.Z, 2));
+            if (distance > maxDist2) maxDist2 = distance;
+            if (distance > maxDist2 * 0.8)
+            {
+                if (handReady2)
+                {
+                    OnNote(HandLeft.Y);
+                    handReady2 = false;
+                }
+            }
+            else
+            {
+                handReady2 = true;
+            }
+            main.Text1.Text = distance.ToString();
+            DrawEllipse(HandLeft, 10, Brushes.Red);
+            DrawEllipse(ShoulderLeft, 10, Brushes.SlateGray);
+        }
+
+        double max = 0.89;
+        double min = -0.18;
+        byte[] notes = new byte[] { 60, 64, 67, 72, 76, 79 };
+        void OnNote(double y)
+        {
+            //60,64,67,72,76,79
+            //0-1,1-2,2-3,3-4,4-5,5-6
+            if (max < y)
+            {
+                midi.OnNote(60);
+                return;
+            }
+            if (min > y)
+            {
+                midi.OnNote(79);
+                return;
+            }
+            int index = (int)(0 + 6 * ((y - min) / 1.07));
+            midi.OnNote(notes[index]);
+        }
         private Point3D JointToPoint3D(Body body, JointType jointType)
         {
             var p = body.Joints[jointType].Position;
