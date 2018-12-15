@@ -147,7 +147,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Constants.cs" />
-    <Compile Include="MidiManager.cs" />
+    <Compile Include="KinectGesture.cs" />
+    <Compile Include="KinectRecorder.cs" />
+    <Compile Include="Midi.cs" />
     <Compile Include="RealSenseManager.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

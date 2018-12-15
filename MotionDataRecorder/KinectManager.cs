@@ -19,30 +19,23 @@ namespace MotionDataRecorder
         private MainWindow main;
 
         private KinectSensor kinect;
+        private KinectRecorder record;
+        private KinectGesture gesture;
+
+        /// <summary> color frameの高さを実際のimageの高さで割ったサイズの比率(座標の表示に利用) </summary>
+        private double imageRate = 1;
 
         private ColorFrameReader colorFrameReader;
         private FrameDescription colorFrameDesc;
         private byte[] colorBuffer;
-        /// <summary> color frameの高さを実際のimageの高さで割ったサイズの比率 </summary>
-        private double imageRate = 1;
-        /// <summary> 画像保存用bitmap source </summary>
-        //public static BitmapSource bitmapSource = null;
-        /// <summary> frame数のカウント </summary>
-        //static int frameCount = 0;
 
         private BodyFrameReader bodyFrameReader;
         private Body[] bodies;
+        private Body user;
 
-        /// <summary> Kinect座標書き込み用ストリーム( time, x, y, z ) </summary>
-        private StreamWriter kinectWriter = null;
-        /// <summary> 時間計測用ストップウォッチ </summary>
-        private static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-
-        private MidiManager midi = null;
         public KinectManager(MainWindow mainWindow)
         {
             main = mainWindow;
-            midi = mainWindow.midiManager;
             InitializeKinect();
             imageRate = colorFrameDesc.Height / main.ImageColor.Height;
         }
@@ -56,6 +49,11 @@ namespace MotionDataRecorder
                 {
                     throw new Exception("Kinectを開けません");
                 }
+
+                //選択デバイス情報を更新
+                Constants.deviceSelect = Constants.SET_KINECT;
+                record = new KinectRecorder();
+                gesture = new KinectGesture();
 
                 kinect.Open();
 
@@ -78,7 +76,6 @@ namespace MotionDataRecorder
             // カラーリーダーを開く
             if (colorFrameReader == null)
             {
-
                 colorFrameReader = kinect.ColorFrameSource.OpenReader();
                 colorFrameReader.FrameArrived += ColorFrameReader_FrameArrived;
             }
@@ -89,18 +86,18 @@ namespace MotionDataRecorder
                 bodies = new Body[kinect.BodyFrameSource.BodyCount];  // Bodyを入れる配列を作る
                 bodyFrameReader = kinect.BodyFrameSource.OpenReader();
                 bodyFrameReader.FrameArrived += BodyFrameReader_FrameArrived;
+                Console.WriteLine(0);
             }
         }
 
+        /// <summary> kinectの接続状態が変化した時のイベント </summary>
         private void Kinect_IsAvailableChanged(object sender, IsAvailableChangedEventArgs e)
         {
-            // Kinectが接続された
-            if (e.IsAvailable)
+            if (e.IsAvailable) // Kinectが接続された
             {
                 PrepareFrame();
             }
-            // Kinectが外された
-            else
+            else // Kinectが外された
             {
                 main.ImageColor.Source = new BitmapImage(new Uri("/Resources/GreyBack.png", UriKind.Relative)); // イメージを初期化する
             }
@@ -123,32 +120,13 @@ namespace MotionDataRecorder
                 // ビットマップにする
                 main.ImageColor.Source = BitmapSource.Create(colorFrameDesc.Width, colorFrameDesc.Height, 96, 96,
                     PixelFormats.Bgra32, null, colorBuffer, colorFrameDesc.Width * (int)colorFrameDesc.BytesPerPixel);
-
-                //bitmapSource = BitmapSource.Create(colorFrameDesc.Width, colorFrameDesc.Height, 96, 96,
-                //    PixelFormats.Bgra32, null, colorBuffer, colorFrameDesc.Width * (int)colorFrameDesc.BytesPerPixel);
-
-                //main.ImageColor.Source = bitmapSource;
-                //ImageColor.SetCurrentValue(Image.SourceProperty, bitmapSource);
-                /*
-                if (RecordPoints.IsChecked == true && frameCount % 3 == 0)
-                {
-                    using (Stream stream =
-                    new FileStream(pathSaveFolder + "image/" + StopWatch.ElapsedMilliseconds + ".jpg", FileMode.Create))
-                    {
-                        JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
-                        encoder.Save(stream);
-                        stream.Close();
-                    }
-                }
-                frameCount++;
-                */
             }
         }
 
         private void BodyFrameReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
         {
             UpdateBodyFrame(e);
+            //なぜかbodiesやbodyがnullのまま処理に入ることがあるため、「bodies(body)がnullでない」かつ「配列に要素が1つでない」時だけ処理
             int bodycount = 0;
             foreach (var body in bodies)
             {
@@ -159,14 +137,16 @@ namespace MotionDataRecorder
                     return;
                 }
                 if (body.IsTracked) bodycount++;
+                user = body;
             }
             if (bodycount > 1)
             {
                 Console.WriteLine("Recognize too many people");
                 return;
             }
-            RecordJoints();
-            //DrawBodyFrame();
+            //処理を記述
+            //RecordJoints();
+            RecogGesture();
         }
 
         private void UpdateBodyFrame(BodyFrameArrivedEventArgs e)
@@ -182,89 +162,22 @@ namespace MotionDataRecorder
             }
         }
 
-        bool ready = true;
         private void RecordJoints()
         {
-            foreach (var body in bodies.Where(b => b.IsTracked))
-            {
-                //RelativeHandTap(body);
-                RelativeBodyTap(body);
-            }
         }
-      
-        private void RelativeHandTap(Body body)
-        {
-            var HandRight = body.Joints[JointType.HandRight].Position;
-            var HandLeft = body.Joints[JointType.HandLeft].Position;
-            var ShoulderRight = body.Joints[JointType.ShoulderRight].Position;
-            var ShoulderLeft = body.Joints[JointType.ShoulderLeft].Position;
 
-            Point3D LRs = new Point3D(ShoulderRight.X - ShoulderLeft.X, ShoulderRight.Y - ShoulderLeft.Y, ShoulderRight.Z - ShoulderLeft.Z);
-            Point3D LRh = new Point3D(HandRight.X - HandLeft.X, HandRight.Y - HandLeft.Y, HandRight.Z - HandLeft.Z);
-            double absLRs = Math.Sqrt(Math.Pow(LRs.X, 2) + Math.Pow(LRs.Y, 2) + Math.Pow(LRs.Z, 2));
-            double t = (LRs.X * LRh.X + LRs.Y * LRh.Y + LRs.Z * LRh.Z) / absLRs;
-            Point3D D = new Point3D(
-                HandLeft.X - HandRight.X + t * LRs.X,
-                HandLeft.Y - HandRight.Y + t * LRs.Y,
-                HandLeft.Z - HandRight.Z + t * LRs.Z);
-            double depth = Math.Sqrt(Math.Pow(D.X, 2) + Math.Pow(D.Y, 2) + Math.Pow(D.Z, 2));
-            var z = (HandLeft.Z - HandRight.Z) * LRs.X - (HandLeft.X - HandRight.X) * LRs.Z;
-            if (z > 0) depth *= -1;
-            if (depth < 0)
-            {
-                if (ready)
-                {
-                    midi.OnNote(60);
-                    ready = false;
-                }
-            }
-            else
-            {
-                ready = true;
-            }
-            main.Text1.Text = depth.ToString();
-            main.Text2.Text = z.ToString();
+        private void RecogGesture()
+        {
+            gesture.RelativeBodyTap(user);
+            var right = user.Joints[JointType.HandRight].Position;
+            var left = user.Joints[JointType.HandLeft].Position;
+
             main.CanvasBody.Children.Clear();
-            DrawEllipse(HandRight, 10, Brushes.Red);
-            DrawEllipse(HandLeft, 10, Brushes.Lavender);
+            DrawEllipse(right, 10, Brushes.Red);
+            DrawEllipse(left, 10, Brushes.Blue);
         }
 
-        double maxDist = -1;
-        private void RelativeBodyTap(Body body)
-        {
-            var HandRight = body.Joints[JointType.HandRight].Position;
-            var ShoulderRight = body.Joints[JointType.ShoulderRight].Position;
-            var distance = Math.Sqrt(
-                Math.Pow(HandRight.X - ShoulderRight.X, 2) +
-                Math.Pow(HandRight.Y - ShoulderRight.Y, 2) +
-                Math.Pow(HandRight.Z - ShoulderRight.Z, 2));
-            if (distance > maxDist) maxDist = distance;
-            if (distance > maxDist * 0.8)
-            {
-                if (ready)
-                {
-                    midi.OnNote(60);
-                    ready = false;
-                }
-            }
-            else
-            {
-                ready = true;
-            }
-            main.Text1.Text = distance.ToString();
-        }
-
-        private Point3D JointToPoint3D(Body body, JointType jointType)
-        {
-            var p = body.Joints[jointType].Position;
-            return new Point3D
-            {
-                X = p.X,
-                Y = p.Y,
-                Z = p.Z,
-            };
-        }
-
+        /// <summary> 画面に円を表示 </summary>
         private void DrawEllipse(CameraSpacePoint position, int R, Brush brush)
         {
             var ellipse = new Ellipse()
@@ -286,31 +199,6 @@ namespace MotionDataRecorder
             main.CanvasBody.Children.Add(ellipse);
         }
 
-        public void StartRecord()
-        {
-            var dt = DateTime.Now;
-            string now = dt.Year + Digits(dt.Month) + Digits(dt.Day) + Digits(dt.Hour) + Digits(dt.Minute) + Digits(dt.Second);
-            kinectWriter = new StreamWriter("../../../Data/Kinect/" + now + ".csv", true);
-            stopwatch.Start();
-            midi.PlayMidi();
-            //Console.WriteLine("start record");
-        }
-
-        /// <summary> 1桁の場合の桁の補正：1時1分→0101 </summary>
-        static public String Digits(int date)
-        {
-            if (date / 10 == 0) return "0" + date;
-            else return date.ToString();
-        }
-
-        public void CloseRecord()
-        {
-            stopwatch.Stop();
-            kinectWriter.Close();
-            kinectWriter = null;
-            Console.WriteLine("stop record");
-        }
-
         public void Close()
         {
             if (colorFrameReader != null)
@@ -330,9 +218,15 @@ namespace MotionDataRecorder
                 kinect.Close();
                 kinect = null;
             }
-            if (kinectWriter != null)
+
+            if (record != null)
             {
-                kinectWriter.Close();
+                record.Close();
+            }
+
+            if (gesture != null)
+            {
+                gesture.Close();
             }
         }
     }

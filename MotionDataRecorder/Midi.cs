@@ -6,15 +6,17 @@ using NextMidi.DataElement;
 using NextMidi.Filing.Midi;
 using NextMidi.MidiPort.Output;
 using NextMidi.Time;
+
 namespace MotionDataRecorder
 {
-    public class MidiManager
+    public class Midi
     {
-        MidiPlayer player;
-        MidiFileDomain domain;
-        MidiOutPort port;
+        static MidiPlayer player;
+        static MidiFileDomain domain;
+        static MidiOutPort port;
 
-        public MidiManager()
+        /// <summary> Midiクラスの初期化 </summary>
+        public static void InitMidi()
         {
             // MIDI ファイルを読み込み
             string fname = "../../../Resources/wood.mid";
@@ -44,7 +46,7 @@ namespace MotionDataRecorder
             player = new MidiPlayer(port);
         }
 
-        public void OnNote(byte note)
+        public static void OnNote(byte note)
         {
             port.Send(new NoteEvent()
             {
@@ -53,7 +55,16 @@ namespace MotionDataRecorder
             });
         }
 
-        public void PlayMidi()
+        public static void OnNote(byte note, byte gate)
+        {
+            port.Send(new NoteEvent()
+            {
+                Note = note,
+                Gate = gate,
+            });
+        }
+
+        public static void PlayMidi()
         {
             // MIDI ファイルを再生
             player.Play(domain);

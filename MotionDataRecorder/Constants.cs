@@ -19,6 +19,10 @@ namespace MotionDataRecorder
 
         public static bool RealSenseIsConnect = false;
 
+        public static int deviceSelect = -1;
+        public const int SET_KINECT = 1;
+        public const int SET_REALSENSE = 2;
+
         public static Brush[] brushes = new Brush[]
         {
             Brushes.Red,
@@ -45,5 +49,10 @@ namespace MotionDataRecorder
             Colors.Navy,
             Colors.Purple
         };
+
+        public static void d()
+        {
+            Console.Write("d");
+        }
     }
 }
