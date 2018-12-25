@@ -18,12 +18,9 @@ namespace MotionDataRecorder
     {
         private MainWindow main;
 
-        private KinectSensor kinect;
-        private KinectRecorder record;
+        public KinectSensor kinect;
+        public KinectRecorder record;
         private KinectGesture gesture;
-
-        /// <summary> color frameの高さを実際のimageの高さで割ったサイズの比率(座標の表示に利用) </summary>
-        private double imageRate = 1;
 
         private ColorFrameReader colorFrameReader;
         private FrameDescription colorFrameDesc;
@@ -37,7 +34,7 @@ namespace MotionDataRecorder
         {
             main = mainWindow;
             InitializeKinect();
-            imageRate = colorFrameDesc.Height / main.ImageColor.Height;
+            Constants.kinectImageRate = colorFrameDesc.Height / main.ImageColor.Height;
         }
 
         private void InitializeKinect()
@@ -86,7 +83,6 @@ namespace MotionDataRecorder
                 bodies = new Body[kinect.BodyFrameSource.BodyCount];  // Bodyを入れる配列を作る
                 bodyFrameReader = kinect.BodyFrameSource.OpenReader();
                 bodyFrameReader.FrameArrived += BodyFrameReader_FrameArrived;
-                Console.WriteLine(0);
             }
         }
 
@@ -99,7 +95,7 @@ namespace MotionDataRecorder
             }
             else // Kinectが外された
             {
-                main.ImageColor.Source = new BitmapImage(new Uri("/Resources/GreyBack.png", UriKind.Relative)); // イメージを初期化する
+                //main.ImageColor.Source = new BitmapImage(new Uri("/Resources/GreyBack.png", UriKind.Relative)); // イメージを初期化する
             }
         }
 
@@ -136,8 +132,11 @@ namespace MotionDataRecorder
                     Console.WriteLine("null body");
                     return;
                 }
-                if (body.IsTracked) bodycount++;
-                user = body;
+                if (body.IsTracked)
+                {
+                    bodycount++;
+                    user = body;
+                }
             }
             if (bodycount > 1)
             {
@@ -145,8 +144,18 @@ namespace MotionDataRecorder
                 return;
             }
             //処理を記述
-            //RecordJoints();
-            RecogGesture();
+            if(user != null)
+            {
+                //RecogGesture();
+                RecordJoints();
+
+                var right = user.Joints[JointType.HandRight].Position;
+                var left = user.Joints[JointType.HandLeft].Position;
+
+                main.CanvasBody.Children.Clear();
+                DrawEllipse(right, 10, Brushes.Red);
+                DrawEllipse(left, 10, Brushes.Blue);
+            }
         }
 
         private void UpdateBodyFrame(BodyFrameArrivedEventArgs e)
@@ -164,17 +173,12 @@ namespace MotionDataRecorder
 
         private void RecordJoints()
         {
+            record.Write(user);
         }
 
         private void RecogGesture()
         {
-            gesture.RelativeBodyTap(user);
-            var right = user.Joints[JointType.HandRight].Position;
-            var left = user.Joints[JointType.HandLeft].Position;
-
-            main.CanvasBody.Children.Clear();
-            DrawEllipse(right, 10, Brushes.Red);
-            DrawEllipse(left, 10, Brushes.Blue);
+            gesture.RelativeHandTap(user);
         }
 
         /// <summary> 画面に円を表示 </summary>
@@ -193,10 +197,32 @@ namespace MotionDataRecorder
                 return;
             }
 
-            Canvas.SetLeft(ellipse, (point.X - (R / 2)) / imageRate);
-            Canvas.SetTop(ellipse, (point.Y - (R / 2)) / imageRate);
+            Canvas.SetLeft(ellipse, (point.X - (R / 2)) / Constants.kinectImageRate);
+            Canvas.SetTop(ellipse, (point.Y - (R / 2)) / Constants.kinectImageRate);
 
             main.CanvasBody.Children.Add(ellipse);
+        }
+
+        public void StartFrameRead()
+        {
+            PrepareFrame();
+        }
+
+        public void StopFrameRead()
+        {
+            //kinect.Close();
+
+            if (colorFrameReader != null)
+            {
+                colorFrameReader.FrameArrived -= ColorFrameReader_FrameArrived;
+            }
+            if (bodyFrameReader != null)
+            {
+                bodyFrameReader.FrameArrived -= BodyFrameReader_FrameArrived;
+            }
+
+            main.CanvasBody.Children.Clear();
+            main.ImageColor.Source = null;
         }
 
         public void Close()

@@ -23,6 +23,9 @@ namespace MotionDataRecorder
         public const int SET_KINECT = 1;
         public const int SET_REALSENSE = 2;
 
+        /// <summary> color frameの高さを実際のimageの高さで割ったサイズの比率(座標の表示に利用) </summary>
+        public static double kinectImageRate = 1;
+
         public static Brush[] brushes = new Brush[]
         {
             Brushes.Red,
@@ -50,9 +53,5 @@ namespace MotionDataRecorder
             Colors.Purple
         };
 
-        public static void d()
-        {
-            Console.Write("d");
-        }
     }
 }

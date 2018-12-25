@@ -2,7 +2,9 @@
 using System.IO;
 using System.Text;
 using NextMidi.Data.Domain;
+using NextMidi.Data.Track;
 using NextMidi.DataElement;
+using NextMidi.DataElement.MetaData;
 using NextMidi.Filing.Midi;
 using NextMidi.MidiPort.Output;
 using NextMidi.Time;
@@ -15,11 +17,62 @@ namespace MotionDataRecorder
         static MidiFileDomain domain;
         static MidiOutPort port;
 
-        /// <summary> Midiクラスの初期化 </summary>
         public static void InitMidi()
         {
+            port = new MidiOutPort(0);
+            try
+            {
+                port.Open();
+            }
+            catch
+            {
+                Console.WriteLine("no such port exists");
+                return;
+            }
+        }
+
+        public static void InitTrack()
+        {
+            var track = new MidiTrack();
+            track.Insert(new TempoEvent() { Tempo = 120, Tick = 0 });
+        }
+
+        public static void OnNote(byte note)
+        {
+            port.Send(new NoteEvent()
+            {
+                Note = note,
+                Gate = 240,
+            });
+        }
+
+        public static void OnNote(byte note, byte gate)
+        {
+            port.Send(new NoteEvent()
+            {
+                Note = note,
+                Gate = gate,
+            });
+        }
+
+        public static void OnNote(byte value, byte note, byte gate)
+        {
+            port.Send(new ProgramEvent
+            {
+                Value = value,
+            });
+            port.Send(new NoteEvent()
+            {
+                Note = note,
+                Gate = gate,
+            });
+        }
+
+        /// <summary> Midiクラスの初期化 </summary>
+        public static void InitPlayer()
+        {
             // MIDI ファイルを読み込み
-            string fname = "../../../Resources/wood.mid";
+            string fname = "../../../Resources/wood.mid";// 0 | 480 1440 | 2400 2880 3360 | 4320 4800 5280 5760 | 6240 …
             if (!File.Exists(fname))
             {
                 Console.WriteLine("File does not exist");
@@ -44,24 +97,6 @@ namespace MotionDataRecorder
 
             // MIDI プレーヤーを作成
             player = new MidiPlayer(port);
-        }
-
-        public static void OnNote(byte note)
-        {
-            port.Send(new NoteEvent()
-            {
-                Note = note,
-                Gate = 240,
-            });
-        }
-
-        public static void OnNote(byte note, byte gate)
-        {
-            port.Send(new NoteEvent()
-            {
-                Note = note,
-                Gate = gate,
-            });
         }
 
         public static void PlayMidi()

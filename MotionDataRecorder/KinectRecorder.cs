@@ -14,7 +14,7 @@ using System.Windows.Media.Media3D;
 
 namespace MotionDataRecorder
 {
-    class KinectRecorder
+    public class KinectRecorder
     {
         /// <summary> 画像保存用bitmap source </summary>
         //public static BitmapSource bitmapSource = null;
@@ -24,11 +24,10 @@ namespace MotionDataRecorder
         /// <summary> Kinect座標書き込み用ストリーム( time, x, y, z ) </summary>
         private StreamWriter kinectWriter = null;
         /// <summary> 時間計測用ストップウォッチ </summary>
-        private static System.Diagnostics.Stopwatch recordTimer = new System.Diagnostics.Stopwatch();
+        private static System.Diagnostics.Stopwatch recTimer = new System.Diagnostics.Stopwatch();
 
         public KinectRecorder()
         {
-
         }
 
         public void StartRecord()
@@ -36,8 +35,8 @@ namespace MotionDataRecorder
             var dt = DateTime.Now;
             string now = dt.Year + Digits(dt.Month) + Digits(dt.Day) + Digits(dt.Hour) + Digits(dt.Minute) + Digits(dt.Second);
             kinectWriter = new StreamWriter("../../../Data/Kinect/" + now + ".csv", true);
-            recordTimer.Start();
-            Midi.PlayMidi();
+            recTimer.Start();
+            //Midi.PlayMidi();
             Console.WriteLine("start record");
         }
 
@@ -48,45 +47,28 @@ namespace MotionDataRecorder
             else return date.ToString();
         }
 
-        public void Write()
+        public void Write(Body body)
         {
             if(kinectWriter != null)
             {
+                kinectWriter.Write(recTimer.ElapsedMilliseconds);
+                foreach (var joint in body.Joints)
+                {
+                    var p = joint.Value.Position;
+                    kinectWriter.Write("," + p.X + "," + p.Y + "," + p.Z);
+                }
                 kinectWriter.WriteLine();
             }
         }
 
         public void StopRecord()
         {
-            recordTimer.Stop();
+            recTimer.Stop();
             kinectWriter.Close();
             kinectWriter = null;
             Console.WriteLine("stop record");
         }
 
-        public void RecordImage()
-        {
-
-            //bitmapSource = BitmapSource.Create(colorFrameDesc.Width, colorFrameDesc.Height, 96, 96,
-            //    PixelFormats.Bgra32, null, colorBuffer, colorFrameDesc.Width * (int)colorFrameDesc.BytesPerPixel);
-
-            //main.ImageColor.Source = bitmapSource;
-            //ImageColor.SetCurrentValue(Image.SourceProperty, bitmapSource);
-            /*
-            if (RecordPoints.IsChecked == true && frameCount % 3 == 0)
-            {
-                using (Stream stream =
-                new FileStream(pathSaveFolder + "image/" + StopWatch.ElapsedMilliseconds + ".jpg", FileMode.Create))
-                {
-                    JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
-                    encoder.Save(stream);
-                    stream.Close();
-                }
-            }
-            frameCount++;
-            */
-        }
 
         public void Close()
         {
@@ -96,10 +78,10 @@ namespace MotionDataRecorder
                 kinectWriter = null;
             }
 
-            if(recordTimer != null)
+            if(recTimer != null)
             {
-                recordTimer.Stop();
-                recordTimer = null;
+                recTimer.Stop();
+                recTimer = null;
             }
         }
     }//class
