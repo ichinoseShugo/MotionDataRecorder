@@ -11,6 +11,7 @@ using System.Windows.Shapes;
 using Microsoft.Kinect;
 using LightBuzz.Vitruvius;
 using System.Windows.Media.Media3D;
+using System.Windows.Threading;
 
 namespace MotionDataRecorder
 {
@@ -24,19 +25,30 @@ namespace MotionDataRecorder
         /// <summary> Kinect座標書き込み用ストリーム( time, x, y, z ) </summary>
         private StreamWriter kinectWriter = null;
         /// <summary> 時間計測用ストップウォッチ </summary>
-        private static System.Diagnostics.Stopwatch recTimer = new System.Diagnostics.Stopwatch();
+        public System.Diagnostics.Stopwatch recTimer = new System.Diagnostics.Stopwatch();
+        public System.Diagnostics.Stopwatch m = null;
 
-        public KinectRecorder()
+        private int stoptime;
+
+        private MainWindow main;
+
+        public KinectRecorder(MainWindow mainWindow)
         {
+            stoptime = Midi.mill[Midi.mill.Length-1] + Midi.resolution;
+            main = mainWindow;
+            m = main.metronomo.stopwatch;
+            Console.WriteLine("record length = " + stoptime);
         }
 
         public void StartRecord()
         {
             var dt = DateTime.Now;
             string now = dt.Year + Digits(dt.Month) + Digits(dt.Day) + Digits(dt.Hour) + Digits(dt.Minute) + Digits(dt.Second);
-            kinectWriter = new StreamWriter("../../../Data/Kinect/" + now + ".csv", true);
+            string version = "";
+            if (main.BodyCheck.IsChecked == true) version = "full";
+            if (main.HandCheck.IsChecked == true) version = "hand";
+            kinectWriter = new StreamWriter("../../../Data/Kinect/" + now + "_" + main.NameBox.Text + "_" + version + ".csv", true);
             recTimer.Start();
-            //Midi.PlayMidi();
             Console.WriteLine("start record");
         }
 
@@ -49,23 +61,44 @@ namespace MotionDataRecorder
 
         public void Write(Body body)
         {
-            if(kinectWriter != null)
+            if (recTimer.ElapsedMilliseconds > stoptime)
             {
-                kinectWriter.Write(recTimer.ElapsedMilliseconds);
-                foreach (var joint in body.Joints)
-                {
-                    var p = joint.Value.Position;
-                    kinectWriter.Write("," + p.X + "," + p.Y + "," + p.Z);
-                }
-                kinectWriter.WriteLine();
+                StopRecord();
             }
+            if (kinectWriter == null) return;
+            kinectWriter.Write(recTimer.ElapsedMilliseconds);
+            foreach (var joint in body.Joints)
+            {
+                var p = joint.Value.Position;
+                kinectWriter.Write("," + p.X + "," + p.Y + "," + p.Z);
+            }
+            kinectWriter.WriteLine();
+        }
+
+        public void Write(Body body, JointType jtype)
+        {
+            if (m.ElapsedMilliseconds > stoptime)
+            {
+                //StopRecord();
+                main.RecordButton.IsChecked = false;
+            }
+            if (kinectWriter == null) return;
+            //kinectWriter.Write(recTimer.ElapsedMilliseconds);
+            kinectWriter.Write(m.ElapsedMilliseconds);
+            var joint = body.Joints[jtype].Position;
+            kinectWriter.Write("," + joint.X + "," + joint.Y + "," + joint.Z);
+            kinectWriter.WriteLine();
         }
 
         public void StopRecord()
         {
-            recTimer.Stop();
-            kinectWriter.Close();
-            kinectWriter = null;
+            //recTimer.Stop();
+            m.Stop();
+            if (kinectWriter != null)
+            {
+                kinectWriter.Close();
+                kinectWriter = null;
+            }
             Console.WriteLine("stop record");
         }
 

@@ -12,13 +12,23 @@
                 <Image x:Name="ImageColor" Width="640" Height="360"/>
             </Border>
             <Canvas x:Name="CanvasBody" Width="640" Height="360" />
+            <Canvas x:Name="CanvasPoint" Width="640" Height="360" />
+            <Canvas x:Name="CanvasMidi" Width="160" Height="180" />
         </Grid>
         <StackPanel Orientation="Vertical">
             <Button x:Name="KinectButton" Content="KinectOpen" Click="KinectButton_Click"/>
+            <ToggleButton x:Name="SkeletonButton" Content="Desplay Skeleton" Checked="SkeletonButton_Checked" Unchecked="SkeletonButton_Unchecked"/>
             <Button x:Name="RealSenseButton" Content="RealSenseOpen" Click="RealSenseButton_Click"/>
             <ToggleButton x:Name="RecordButton" Content="Record" Checked="Record_Click" Unchecked="Record_Unchecked"/>
+            <GroupBox Margin="3">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <RadioButton x:Name="BodyCheck" Content="full body" IsChecked="True"/>
+                    <RadioButton x:Name="HandCheck" Content="hand left"/>
+                    <TextBox x:Name="NameBox" Text="name" Margin="20,0,0,0"/>
+                </StackPanel>
+            </GroupBox>
             <Button x:Name="ReplayButton" Content="PlayBack" Click="ReplayButton_Click"/>
-            <Button x:Name="StopPlayButton" Content="Stop Playback" Click="StopPlayButton_Click" IsEnabled="False"/>
+            <ToggleButton x:Name="StopPlayButton" Content="||" Checked="StopPlayButton_Checked" Unchecked="StopPlayButton_Unchecked" IsEnabled="False"/>
             <Button x:Name="MidiButton" Content="Midi" Click="Midi_Click"/>
             <StackPanel Orientation="Horizontal">
                 <TextBlock x:Name="Text1" Width="100" Text="text1"/>
@@ -35,6 +45,7 @@
                 <TextBlock x:Name="Text8" Width="100" Text="text2"/>
                 <TextBlock x:Name="Text9" Width="100" Text="text3"/>
             </StackPanel>
+            <Canvas x:Name="CanvasTarget" Height="160"/>
         </StackPanel>
     </StackPanel>
 </Window>

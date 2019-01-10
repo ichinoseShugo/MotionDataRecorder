@@ -34,35 +34,30 @@ namespace MotionDataRecorder
         {
             main = mainWindow;
             InitializeKinect();
-            Constants.kinectImageRate = colorFrameDesc.Height / main.ImageColor.Height;
+
+            kinect.Open();
         }
 
         private void InitializeKinect()
         {
-            try
+            kinect = KinectSensor.GetDefault();
+            if (kinect == null)
             {
-                kinect = KinectSensor.GetDefault();
-                if (kinect == null)
-                {
-                    throw new Exception("Kinectを開けません");
-                }
-
-                //選択デバイス情報を更新
-                Constants.deviceSelect = Constants.SET_KINECT;
-                record = new KinectRecorder();
-                gesture = new KinectGesture();
-
-                kinect.Open();
-
-                //抜き差しイベントを設定
-                kinect.IsAvailableChanged += Kinect_IsAvailableChanged;
-                //フレームの準備
-                PrepareFrame();
+                throw new Exception("Kinectを開けません");
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
+
+            //選択デバイス情報を更新
+            Constants.deviceSelect = Constants.SET_KINECT;
+            record = new KinectRecorder(main);
+            gesture = new KinectGesture();
+
+            //抜き差しイベントを設定
+            kinect.IsAvailableChanged += Kinect_IsAvailableChanged;
+
+            //フレームの準備
+            PrepareFrame();
+
+            Constants.kinectImageRate = colorFrameDesc.Height / main.ImageColor.Height;
         }
 
         private void PrepareFrame()
@@ -89,9 +84,11 @@ namespace MotionDataRecorder
         /// <summary> kinectの接続状態が変化した時のイベント </summary>
         private void Kinect_IsAvailableChanged(object sender, IsAvailableChangedEventArgs e)
         {
+            Console.WriteLine(e.ToString() + "," + e.IsAvailable);
             if (e.IsAvailable) // Kinectが接続された
             {
-                PrepareFrame();
+                Console.WriteLine("available > prepare frame");
+                //PrepareFrame();
             }
             else // Kinectが外された
             {
@@ -101,6 +98,7 @@ namespace MotionDataRecorder
 
         private void ColorFrameReader_FrameArrived(object sender, ColorFrameArrivedEventArgs e)
         {
+            main.Text1.Text = e.FrameReference.RelativeTime.TotalMilliseconds.ToString();
             // カラーフレームを取得する
             using (var colorFrame = e.FrameReference.AcquireFrame())
             {
@@ -149,12 +147,19 @@ namespace MotionDataRecorder
                 //RecogGesture();
                 RecordJoints();
 
+                var head = user.Joints[JointType.Head].Position;
                 var right = user.Joints[JointType.HandRight].Position;
                 var left = user.Joints[JointType.HandLeft].Position;
+                var rfoot = user.Joints[JointType.FootRight].Position;
+                var lfoot = user.Joints[JointType.FootLeft].Position;
 
                 main.CanvasBody.Children.Clear();
-                DrawEllipse(right, 10, Brushes.Red);
-                DrawEllipse(left, 10, Brushes.Blue);
+
+                DrawEllipse(head, 10, Brushes.Green);
+                DrawEllipse(right, 10, Brushes.Green);
+                DrawEllipse(left, 10, Brushes.Green);
+                DrawEllipse(rfoot, 10, Brushes.Green);
+                DrawEllipse(lfoot, 10, Brushes.Green);
             }
         }
 
@@ -173,7 +178,8 @@ namespace MotionDataRecorder
 
         private void RecordJoints()
         {
-            record.Write(user);
+            if (main.BodyCheck.IsChecked == true) record.Write(user);
+            if (main.HandCheck.IsChecked == true) record.Write(user, JointType.HandRight);
         }
 
         private void RecogGesture()
@@ -205,16 +211,17 @@ namespace MotionDataRecorder
 
         public void StartFrameRead()
         {
-            PrepareFrame();
+            //PrepareFrame();
+            kinect.Open();
         }
 
         public void StopFrameRead()
         {
             //kinect.Close();
-
             if (colorFrameReader != null)
             {
                 colorFrameReader.FrameArrived -= ColorFrameReader_FrameArrived;
+                colorFrameReader.FrameArrived += Skeleton_Mode;
             }
             if (bodyFrameReader != null)
             {
@@ -222,7 +229,12 @@ namespace MotionDataRecorder
             }
 
             main.CanvasBody.Children.Clear();
-            main.ImageColor.Source = null;
+            main.ImageColor.Source = main.ImageColor.Source = new BitmapImage(new Uri("/Resources/GreyBack.png", UriKind.Relative));
+        }
+
+        private void Skeleton_Mode(object sender, ColorFrameArrivedEventArgs e)
+        {
+            main.Text5.Text = e.FrameReference.RelativeTime.TotalMilliseconds.ToString();
         }
 
         public void Close()

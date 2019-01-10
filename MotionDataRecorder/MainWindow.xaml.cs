@@ -29,6 +29,8 @@ namespace MotionDataRecorder
 
         KinectReplay kinectReplay = null;
 
+        public Metronomo metronomo;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -37,7 +39,8 @@ namespace MotionDataRecorder
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             Midi.InitMidi();
-            kinectManager = new KinectManager(this);
+            metronomo = new Metronomo(this);
+            //kinectManager = new KinectManager(this);
             //realSenseManager = new RealSenseManager(this);
         }
 
@@ -51,10 +54,18 @@ namespace MotionDataRecorder
             {
                 realSenseManager.Close();
             }
+            if(kinectReplay != null)
+            {
+                kinectReplay.Close();
+            }
         }
 
         private void KinectButton_Click(object sender, RoutedEventArgs e)
         {
+            if(kinectReplay != null)
+            {
+                kinectReplay.Close();
+            }
             if (realSenseManager != null)
             {
                 Console.WriteLine("realsense is already opened, please stop realsense");
@@ -90,6 +101,8 @@ namespace MotionDataRecorder
                     if (kinectManager != null)
                     {
                         kinectManager.record.StartRecord();
+                        metronomo.Start();
+                        Console.WriteLine(metronomo.stopwatch.ElapsedMilliseconds - kinectManager.record.recTimer.ElapsedMilliseconds);
                     }
                     break;
                 case 2:
@@ -128,36 +141,10 @@ namespace MotionDataRecorder
         #endregion
 
         #region midi
-
-        int[] time = new int[] { 480, 1440, 2400, 2880, 3360, 4320, 4800, 5280, 5760, 6240, 6720, 7200, 7680, 8160, 8640, 9120, 9600, 10080, 10560, 11040, 11520, 12000, 12480, 12960, 13440, 13920, 14400, 14880, 15360, 15840, 16320, 16800, 17280, 17760, 18240, 18720, 19200 };
-        private static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-
+        
         public void Midi_Click(object sender, RoutedEventArgs e)
         {
-            stopwatch.Start();
-            StartEnsemble();
-            Console.WriteLine("click");
-        }
-
-        private async void StartMidi()
-        {
-            await Task.Run(() => 
-            {
-                Midi.OnNote(60);
-            });
-        }
-
-        private async void StartEnsemble()
-        {
-            await Task.Run(() =>
-            {
-                for (int i = 0; i < time.Length; i++)
-                {
-                    int waitTime = (int)(time[i] - stopwatch.ElapsedMilliseconds);
-                    System.Threading.Thread.Sleep(waitTime);
-                    Midi.OnNote(11, 80, 240);
-                }
-            });
+            metronomo.Start();
         }
 
         #endregion
@@ -165,27 +152,48 @@ namespace MotionDataRecorder
         #region replay
         private void ReplayButton_Click(object sender, RoutedEventArgs e)
         {
+            kinectReplay = new KinectReplay(this);
             if (kinectManager != null)
             {
-                kinectReplay = new KinectReplay(this, kinectManager.kinect);
-                if (kinectReplay.index >= 0)
-                {
-                    kinectManager.StopFrameRead();
-                    kinectReplay.StartReplay();
-                    StopPlayButton.IsEnabled = true;
-                }
+                kinectManager.StopFrameRead();
             }
+            kinectReplay.StartReplay();
+            StopPlayButton.IsEnabled = true;
         }
 
-        private void StopPlayButton_Click(object sender, RoutedEventArgs e)
+        private void StopPlayButton_Checked(object sender, RoutedEventArgs e)
         {
-            StopPlayButton.IsEnabled = false;
             if (kinectReplay != null)
             {
                 kinectReplay.StopReplay();
             }
+            StopPlayButton.Content = "▶";
+        }
+
+        private void StopPlayButton_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (kinectReplay != null)
+            {
+                kinectReplay.StartReplay();
+            }
+            StopPlayButton.Content = "||";
         }
         #endregion
 
+        private void SkeletonButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if(kinectManager != null)
+            {
+                kinectManager.StopFrameRead();
+            }
+        }
+
+        private void SkeletonButton_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (kinectManager != null)
+            {
+                kinectManager.StartFrameRead();
+            }
+        }
     }//class
 }//namespace

@@ -150,7 +150,9 @@
     <Compile Include="KinectGesture.cs" />
     <Compile Include="KinectRecorder.cs" />
     <Compile Include="KinectReplay.cs" />
+    <Compile Include="Metronomo.cs" />
     <Compile Include="Midi.cs" />
+    <Compile Include="Norm.cs" />
     <Compile Include="RealSenseManager.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -196,6 +198,7 @@
     <Content Include="libpxccpp2c.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="output-timing.txt" />
     <Content Include="References\Kinect\LightBuzz.Vitruvius.dll" />
     <Resource Include="wood-time.txt" />
     <Resource Include="References\Kinect\LightBuzz.Vitruvius.XML" />
