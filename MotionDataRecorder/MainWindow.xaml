@@ -7,14 +7,20 @@
         mc:Ignorable="d"
         Title="MainWindow" SizeToContent="WidthAndHeight" Loaded="Window_Loaded" Closing="Window_Closing">
     <StackPanel Orientation="Horizontal">
-        <Grid Margin="10">
-            <Border BorderBrush="Navy" BorderThickness="1">
-                <Image x:Name="ImageColor" Width="640" Height="360"/>
-            </Border>
-            <Canvas x:Name="CanvasBody" Width="640" Height="360" />
-            <Canvas x:Name="CanvasPoint" Width="640" Height="360" />
-            <Canvas x:Name="CanvasMidi" Width="160" Height="180" />
-        </Grid>
+        <StackPanel >
+            <Grid Margin="10">
+                <Border BorderBrush="Navy" BorderThickness="1">
+                    <Image x:Name="ImageColor" Width="640" Height="360"/>
+                </Border>
+                <Canvas x:Name="CanvasBody" Width="640" Height="360" />
+                <Canvas x:Name="CanvasReplayFront" Width="320" Height="360" HorizontalAlignment="Left"/>
+                <Canvas x:Name="CanvasReplaySide" Width="320" Height="360" HorizontalAlignment="Right"/>
+            </Grid>
+            <Grid>
+                <Canvas x:Name="CanvasTarget" Height="160"/>
+                <Canvas x:Name="CanvasMidi" Width="160" Height="180" />
+            </Grid>
+        </StackPanel>
         <StackPanel Orientation="Vertical">
             <Button x:Name="KinectButton" Content="KinectOpen" Click="KinectButton_Click"/>
             <ToggleButton x:Name="SkeletonButton" Content="Desplay Skeleton" Checked="SkeletonButton_Checked" Unchecked="SkeletonButton_Unchecked"/>
@@ -27,6 +33,7 @@
                     <TextBox x:Name="NameBox" Text="name" Margin="20,0,0,0"/>
                 </StackPanel>
             </GroupBox>
+            <Button x:Name="LearnButton" Content="Learning" Click="LearnButton_Click"/>
             <Button x:Name="ReplayButton" Content="PlayBack" Click="ReplayButton_Click"/>
             <ToggleButton x:Name="StopPlayButton" Content="||" Checked="StopPlayButton_Checked" Unchecked="StopPlayButton_Unchecked" IsEnabled="False"/>
             <Button x:Name="MidiButton" Content="Midi" Click="Midi_Click"/>
@@ -45,7 +52,6 @@
                 <TextBlock x:Name="Text8" Width="100" Text="text2"/>
                 <TextBlock x:Name="Text9" Width="100" Text="text3"/>
             </StackPanel>
-            <Canvas x:Name="CanvasTarget" Height="160"/>
         </StackPanel>
     </StackPanel>
 </Window>

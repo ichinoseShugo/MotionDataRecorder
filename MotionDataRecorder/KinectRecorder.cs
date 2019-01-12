@@ -24,6 +24,7 @@ namespace MotionDataRecorder
 
         /// <summary> Kinect座標書き込み用ストリーム( time, x, y, z ) </summary>
         private StreamWriter kinectWriter = null;
+        public string fileName = "";
         /// <summary> 時間計測用ストップウォッチ </summary>
         public System.Diagnostics.Stopwatch recTimer = new System.Diagnostics.Stopwatch();
         public System.Diagnostics.Stopwatch m = null;
@@ -47,7 +48,8 @@ namespace MotionDataRecorder
             string version = "";
             if (main.BodyCheck.IsChecked == true) version = "full";
             if (main.HandCheck.IsChecked == true) version = "hand";
-            kinectWriter = new StreamWriter("../../../Data/Kinect/" + now + "_" + main.NameBox.Text + "_" + version + ".csv", true);
+            fileName = "../../../Data/Kinect/" + now + "_" + main.NameBox.Text + "_" + version + ".csv";
+            kinectWriter = new StreamWriter(fileName , true);
             recTimer.Start();
             Console.WriteLine("start record");
         }
@@ -61,12 +63,13 @@ namespace MotionDataRecorder
 
         public void Write(Body body)
         {
-            if (recTimer.ElapsedMilliseconds > stoptime)
+            if (m.ElapsedMilliseconds > stoptime)
             {
-                StopRecord();
+                //StopRecord();
+                main.RecordButton.IsChecked = false;
             }
             if (kinectWriter == null) return;
-            kinectWriter.Write(recTimer.ElapsedMilliseconds);
+            kinectWriter.Write(m.ElapsedMilliseconds);
             foreach (var joint in body.Joints)
             {
                 var p = joint.Value.Position;
@@ -101,7 +104,6 @@ namespace MotionDataRecorder
             }
             Console.WriteLine("stop record");
         }
-
 
         public void Close()
         {

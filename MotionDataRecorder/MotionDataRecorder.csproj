@@ -157,6 +157,7 @@
     <Compile Include="KinectReplay.cs" />
     <Compile Include="Metronomo.cs" />
     <Compile Include="Midi.cs" />
+    <Compile Include="MotionLearner.cs" />
     <Compile Include="Norm.cs" />
     <Compile Include="RealSenseManager.cs" />
     <Page Include="MainWindow.xaml">

@@ -30,7 +30,7 @@ namespace MotionDataRecorder
         KinectReplay kinectReplay = null;
 
         public Metronomo metronomo;
-
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -194,6 +194,12 @@ namespace MotionDataRecorder
             {
                 kinectManager.StartFrameRead();
             }
+        }
+
+        private void LearnButton_Click(object sender, RoutedEventArgs e)
+        {
+            string filename = "../../../Data/Kinect/12/20190109184607_taka2_full.csv";
+            MotionLearner m = new MotionLearner(this, filename);
         }
     }//class
 }//namespace

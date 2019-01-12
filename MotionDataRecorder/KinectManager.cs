@@ -30,6 +30,8 @@ namespace MotionDataRecorder
         private Body[] bodies;
         private Body user;
 
+        EventHandler<ColorFrameArrivedEventArgs> handler = null;
+
         public KinectManager(MainWindow mainWindow)
         {
             main = mainWindow;
@@ -54,6 +56,11 @@ namespace MotionDataRecorder
             //抜き差しイベントを設定
             kinect.IsAvailableChanged += Kinect_IsAvailableChanged;
 
+            handler = (s, e) =>
+            {
+                ColorFrameReader_FrameArrived(s, e);
+            };
+
             //フレームの準備
             PrepareFrame();
 
@@ -69,7 +76,8 @@ namespace MotionDataRecorder
             if (colorFrameReader == null)
             {
                 colorFrameReader = kinect.ColorFrameSource.OpenReader();
-                colorFrameReader.FrameArrived += ColorFrameReader_FrameArrived;
+                //colorFrameReader.FrameArrived += ColorFrameReader_FrameArrived;
+                colorFrameReader.FrameArrived += handler;
             }
 
             // ボディーリーダーを開く
@@ -146,20 +154,16 @@ namespace MotionDataRecorder
             {
                 //RecogGesture();
                 RecordJoints();
+                DrawSkeleton();
+            }
+        }
 
-                var head = user.Joints[JointType.Head].Position;
-                var right = user.Joints[JointType.HandRight].Position;
-                var left = user.Joints[JointType.HandLeft].Position;
-                var rfoot = user.Joints[JointType.FootRight].Position;
-                var lfoot = user.Joints[JointType.FootLeft].Position;
-
-                main.CanvasBody.Children.Clear();
-
-                DrawEllipse(head, 10, Brushes.Green);
-                DrawEllipse(right, 10, Brushes.Green);
-                DrawEllipse(left, 10, Brushes.Green);
-                DrawEllipse(rfoot, 10, Brushes.Green);
-                DrawEllipse(lfoot, 10, Brushes.Green);
+        private void DrawSkeleton()
+        {
+            main.CanvasBody.Children.Clear();
+            foreach (var joint in user.Joints)
+            {
+                DrawEllipse(joint.Value.Position, 10, Brushes.Green);
             }
         }
 
@@ -220,8 +224,9 @@ namespace MotionDataRecorder
             //kinect.Close();
             if (colorFrameReader != null)
             {
-                colorFrameReader.FrameArrived -= ColorFrameReader_FrameArrived;
-                colorFrameReader.FrameArrived += Skeleton_Mode;
+                //colorFrameReader.FrameArrived -= ColorFrameReader_FrameArrived;
+                //colorFrameReader.FrameArrived -= handler;
+                //colorFrameReader.FrameArrived += Skeleton_Mode;
             }
             if (bodyFrameReader != null)
             {
