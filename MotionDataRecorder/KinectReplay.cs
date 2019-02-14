@@ -21,6 +21,7 @@ namespace MotionDataRecorder
         private List<float[]> jointList = new List<float[]>();
         private List<float[]> frontList = new List<float[]>();
         private List<float[]> sideList = new List<float[]>();
+        private List<float[]> centroidList = new List<float[]>();
 
         private List<float[]> xAxis = null;
         private List<float[]> yAxis = null;
@@ -29,18 +30,12 @@ namespace MotionDataRecorder
 
         public System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
 
-        PointF mCenter;
-
         public KinectReplay(MainWindow mainWindow)
         {
             main = mainWindow;
-            InitializeReplay();
-
-            mCenter.X= (float)main.CanvasMidi.ActualWidth / 2;
-            mCenter.Y = (float)main.CanvasMidi.ActualHeight / 2;
         }
 
-        private void InitializeReplay()
+        public bool InitializeReplay()
         {
             var dialog = new OpenFileDialog();
             string startupPath = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(Environment.GetCommandLineArgs()[0]));
@@ -52,18 +47,39 @@ namespace MotionDataRecorder
             {
                 using (StreamReader sr = new StreamReader(dialog.FileName))
                 {
-                    //LineToData(sr, true);
-                    LineToNormData(sr, true);
+                    LineToData(sr);
+                    //RawLineToData(sr, true);
+                    //RawLineToNormData(sr, true);
                 }
             }
             else
             {
                 Console.WriteLine("open file error");
-                return;
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary> 正規化されたファイルからデータへ </summary>
+        private void LineToData(StreamReader sr)
+        {
+            String line = "";
+            while ((line = sr.ReadLine()) != null)
+            {
+                string[] tokens = line.Split(',');
+                //タイムテーブルに時間を追加
+                timeTable.Add(int.Parse(tokens[0]));
+
+                //各リスト格納用配列
+                float[] joint = TokensTo3DPoints(tokens);
+                jointList.Add(joint);
+                GetCanvasPoint(joint);
+                GetCentList(joint);
             }
         }
 
-        private void LineToData(StreamReader sr, bool moveOrigin)
+        /// <summary> 正規化してないファイルからデータへ </summary>
+        private void RawLineToData(StreamReader sr, bool moveOrigin)
         {
             String line = "";
             while ((line = sr.ReadLine()) != null)
@@ -83,7 +99,8 @@ namespace MotionDataRecorder
             }
         }
 
-        private void LineToNormData(StreamReader sr, bool moveOrigin)
+        /// <summary> 正規化してないファイルから正規化データへ </summary>
+        private void RawLineToNormData(StreamReader sr, bool moveOrigin)
         {
             xAxis = new List<float[]>();
             yAxis = new List<float[]>();
@@ -100,11 +117,21 @@ namespace MotionDataRecorder
 
                 //各リスト格納用配列
                 float[] joint = TokensTo3DPoints(tokens, origin);
-                var joint_norm = Norm.ToModel(joint);
+                var joint_norm = Norm.ChangeBaseVec(joint);
 
                 jointList.Add(joint_norm);
                 GetCanvasPoint(joint_norm);
             }
+        }
+
+        private float[] TokensTo3DPoints(string[] tokens)
+        {
+            float[] joint = new float[tokens.Length - 1]; //0番目は時間
+            for (int i = 0; i < joint.Length; i++)
+            {
+                joint[i] = float.Parse(tokens[i + 1]);
+            }
+            return joint;
         }
 
         private float[] TokensTo3DPoints(string[] tokens, float[] origin)
@@ -123,7 +150,7 @@ namespace MotionDataRecorder
             PointF center = new PointF() { X = (float)(main.CanvasReplayFront.ActualWidth / 2), Y = (float)main.CanvasReplayFront.ActualHeight / 2 };
             float[] front = new float[joint.Length * 2 / 3]; //x,y座標を格納
             float[] side = new float[joint.Length * 2 / 3]; //z,y座標を格納
-
+            
             for (int i = 0; i < joint.Length / 3; i++)
             {
                 int jx = i * 3, jy = i * 3 + 1, jz = i * 3 + 2;
@@ -137,6 +164,31 @@ namespace MotionDataRecorder
 
             frontList.Add(front);
             sideList.Add(side);
+        }
+
+        private void GetCentList(float[] joint)
+        {
+            float[] centroid = new float[12];
+            PointF center = new PointF() { X = (float)(main.CanvasReplayFront.ActualWidth / 2), Y = (float)main.CanvasReplayFront.ActualHeight / 2 };
+
+            int[][] groupList = new int[][] { JT.ArmRArray, JT.ArmLArray, JT.LegRArray, JT.LegLArray };
+            for (int listNum = 0; listNum < groupList.Length; listNum++)
+            {
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    int[] jointGroup = groupList[listNum];
+                    float p = 0;
+                    for (int groupNum = 0; groupNum < jointGroup.Length; groupNum++)
+                    {
+                        p += joint[jointGroup[groupNum] * 3 + axis];
+                    }
+                    if (axis == 0 || axis == 2) p = (p / jointGroup.Length) * 100 + center.X;
+                    if (axis == 1) p = (p / jointGroup.Length) * -100 + center.Y;
+                    centroid[listNum * 3 + axis] = p;
+                }
+            }
+
+            centroidList.Add(centroid);
         }
 
         private void GetAxis(List<float[]> axis, float[] joints, int type1, int type2, float[] origin)
@@ -155,15 +207,14 @@ namespace MotionDataRecorder
 
         public void StartReplay()
         {
-            //CompositionTarget.Rendering += CompositionTarget_Rendering;
             rendering = true;
             sw.Start();
             Render();
+            Metronomo.StartNoteBySleep();
         }
 
         public void StopReplay()
         {
-            //CompositionTarget.Rendering -= CompositionTarget_Rendering;
             rendering = false;
         }
 
@@ -180,16 +231,16 @@ namespace MotionDataRecorder
                 int waitTime = (int)(timeTable[index] - sw.ElapsedMilliseconds);
                 if (waitTime < 0)
                 {
+                    Console.WriteLine("skip index " + index);
                     index++;
                     continue;
                 }
                 else
                 {
                     System.Threading.Thread.Sleep(waitTime);
-                    main.CanvasMidi.Dispatcher.BeginInvoke(new Action(() =>
+                    main.CanvasReplayFront.Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        DrawSkeleton(frontList[index], sideList[index]);
-                        //if (xAxis != null && yAxis != null) DrawAxis(xAxis[index], yAxis[index]);
+                        DrawSkeleton(frontList[index], sideList[index], centroidList[index]);
                     }));
                     index++;
                     if (index >= frontList.Count - 1)
@@ -197,47 +248,13 @@ namespace MotionDataRecorder
                         Console.WriteLine("reset");
                         index = 0;
                         sw.Restart();
-                        mindex = 0;
-                        gate = 0;
-                        erase = true;
                     }
                 }
             }
         }
 
-        int[] mill = Midi.mill;
-        int mindex = 0;
-        int gate = 0;
-        bool erase = true;
-        private void CompositionTarget_Rendering(object sender, EventArgs e)
-        {
-            if (mindex >= mill.Length - 1) return;
-            if(mill[mindex] <= sw.ElapsedMilliseconds)
-            {
-                DrawMidi(mCenter.X, mCenter.Y, 10, Brushes.Red);
-                gate = mill[mindex + 1] - mill[mindex];
-                mindex++;
-                erase = true;
-            }
-            else
-            {
-                if(mill[mindex] - gate <= sw.ElapsedMilliseconds && erase)
-                {
-                    main.CanvasMidi.Children.Clear();
-                    erase = false;
-                }
-            }
-        }
-
-        private void CompositionTarget_SkeletonRendering(object sender, EventArgs e)
-        {
-            DrawSkeleton(frontList[index], sideList[index]);
-            index++;
-            if (index >= frontList.Count - 1) index = 0;
-        }
-
         int[] edge = new int[] { 0, 1, 0, 12, 0, 16, 1, 20, 20, 2, 20, 4, 20, 8, 2, 3, 4, 5, 5, 6, 6, 7, 7, 21, 7, 22, 8, 9, 9, 10, 10, 11, 11, 23, 11, 24, 12, 13, 13, 14, 14, 15, 16, 17, 17, 18, 18, 19 };
-        private void DrawSkeleton(float[] fData, float[] sData)
+        private void DrawSkeleton(float[] fData, float[] sData, float[] c)
         {
             main.CanvasReplayFront.Children.Clear();
             main.CanvasReplaySide.Children.Clear();
@@ -246,6 +263,14 @@ namespace MotionDataRecorder
                 DrawEllipse(fData[i * 2], fData[i * 2 + 1], 4, Brushes.Navy, main.CanvasReplayFront); // x, y
                 DrawEllipse(sData[i * 2], sData[i * 2 + 1], 4, Brushes.Navy, main.CanvasReplaySide); // z, y
             }
+            DrawEllipse(c[0], c[1], 4, Brushes.Red, main.CanvasReplayFront); // 重心 z, y
+            DrawEllipse(c[2], c[1], 4, Brushes.Red, main.CanvasReplaySide); // 重心 z, y
+            DrawEllipse(c[3], c[4], 4, Brushes.Red, main.CanvasReplayFront); // 重心 z, y
+            DrawEllipse(c[5], c[4], 4, Brushes.Red, main.CanvasReplaySide); // 重心 z, y
+            DrawEllipse(c[6], c[7], 4, Brushes.Green, main.CanvasReplayFront); // 重心 z, y
+            DrawEllipse(c[8], c[7], 4, Brushes.Green, main.CanvasReplaySide); // 重心 z, y
+            DrawEllipse(c[9], c[10], 4, Brushes.Green, main.CanvasReplayFront); // 重心 z, y
+            DrawEllipse(c[11], c[10], 4, Brushes.Green, main.CanvasReplaySide); // 重心 z, y
             for (int i = 0; i < edge.Length / 2; i++)
             {
                 int j1 = edge[i * 2] * 2;
@@ -274,20 +299,6 @@ namespace MotionDataRecorder
             Canvas.SetTop(ellipse, y);
 
             canvas.Children.Add(ellipse);
-        }
-        
-        private void DrawMidi(float x, float y, double r, Brush b)
-        {
-            Ellipse ellipse = new Ellipse()
-            {
-                Width = r,
-                Height = r,
-                Fill = b,
-            };
-            Canvas.SetLeft(ellipse, x);
-            Canvas.SetTop(ellipse, y);
-
-            main.CanvasMidi.Children.Add(ellipse);
         }
 
         private void DrawLine(float x1, float y1, float x2, float y2, Canvas canvas)

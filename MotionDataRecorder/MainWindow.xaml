@@ -5,9 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MotionDataRecorder"
         mc:Ignorable="d"
+        xmlns:oxy="http://oxyplot.org/wpf"
         Title="MainWindow" SizeToContent="WidthAndHeight" Loaded="Window_Loaded" Closing="Window_Closing">
-    <StackPanel Orientation="Horizontal">
-        <StackPanel >
+    <StackPanel>
+        <StackPanel Orientation="Horizontal">
             <Grid Margin="10">
                 <Border BorderBrush="Navy" BorderThickness="1">
                     <Image x:Name="ImageColor" Width="640" Height="360"/>
@@ -16,42 +17,89 @@
                 <Canvas x:Name="CanvasReplayFront" Width="320" Height="360" HorizontalAlignment="Left"/>
                 <Canvas x:Name="CanvasReplaySide" Width="320" Height="360" HorizontalAlignment="Right"/>
             </Grid>
-            <Grid>
-                <Canvas x:Name="CanvasTarget" Height="160"/>
-                <Canvas x:Name="CanvasMidi" Width="160" Height="180" />
-            </Grid>
-        </StackPanel>
-        <StackPanel Orientation="Vertical">
-            <Button x:Name="KinectButton" Content="KinectOpen" Click="KinectButton_Click"/>
-            <ToggleButton x:Name="SkeletonButton" Content="Desplay Skeleton" Checked="SkeletonButton_Checked" Unchecked="SkeletonButton_Unchecked"/>
-            <Button x:Name="RealSenseButton" Content="RealSenseOpen" Click="RealSenseButton_Click"/>
-            <ToggleButton x:Name="RecordButton" Content="Record" Checked="Record_Click" Unchecked="Record_Unchecked"/>
-            <GroupBox Margin="3">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <RadioButton x:Name="BodyCheck" Content="full body" IsChecked="True"/>
-                    <RadioButton x:Name="HandCheck" Content="hand left"/>
-                    <TextBox x:Name="NameBox" Text="name" Margin="20,0,0,0"/>
+            <StackPanel Orientation="Vertical">
+                <Button x:Name="KinectButton" Content="KinectOpen" Click="KinectButton_Click"/>
+                <Button x:Name="GestureButton" Content="Gesture" Click="GestureButton_Click"/>
+                <Button x:Name="ExperimentButton" Content="Start Experiment" Click="ExperimentButton_Click"/>
+                <ComboBox x:Name="GestureBox" SelectionChanged="GestureBox_SelectionChanged"/>
+                <ToggleButton x:Name="RecordButton" Content="Record" Checked="Record_Click" Unchecked="Record_Unchecked"/>
+                <TextBox x:Name="NameBox" Text="name" Margin="2.5,2.5,2.5,1"/>
+                <Button x:Name="ReplayButton" Content="PlayBack" Click="ReplayButton_Click"/>
+                <ToggleButton x:Name="StopPlayButton" Content="||" 
+                              Checked="StopPlayButton_Checked" Unchecked="StopPlayButton_Unchecked" IsEnabled="False"/>
+                <Button x:Name="MidiButton" Content="Midi" Click="Midi_Click" Visibility="Hidden"/>
+                <Button x:Name="BGMButton" Content="BGM" Click="BGMButton_Click" Visibility="Hidden"/>
+                <StackPanel Orientation="Horizontal" Visibility="Hidden">
+                    <TextBlock x:Name="Text1" Width="100" Text="text1"/>
+                    <TextBlock x:Name="Text2" Width="100" Text="text2"/>
+                    <TextBlock x:Name="Text3" Width="100" Text="text3"/>
                 </StackPanel>
-            </GroupBox>
-            <Button x:Name="LearnButton" Content="Learning" Click="LearnButton_Click"/>
-            <Button x:Name="ReplayButton" Content="PlayBack" Click="ReplayButton_Click"/>
-            <ToggleButton x:Name="StopPlayButton" Content="||" Checked="StopPlayButton_Checked" Unchecked="StopPlayButton_Unchecked" IsEnabled="False"/>
-            <Button x:Name="MidiButton" Content="Midi" Click="Midi_Click"/>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="Text1" Width="100" Text="text1"/>
-                <TextBlock x:Name="Text2" Width="100" Text="text2"/>
-                <TextBlock x:Name="Text3" Width="100" Text="text3"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="Text4" Width="100" Text="text1"/>
-                <TextBlock x:Name="Text5" Width="100" Text="text2"/>
-                <TextBlock x:Name="Text6" Width="100" Text="text3"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="Text7" Width="100" Text="text1"/>
-                <TextBlock x:Name="Text8" Width="100" Text="text2"/>
-                <TextBlock x:Name="Text9" Width="100" Text="text3"/>
-            </StackPanel>
-        </StackPanel>
-    </StackPanel>
+                <StackPanel Orientation="Horizontal" Visibility="Hidden">
+                    <TextBlock x:Name="Text4" Width="100" Text="text1"/>
+                    <TextBlock x:Name="Text5" Width="100" Text="text2"/>
+                    <TextBlock x:Name="Text6" Width="100" Text="text3"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Visibility="Hidden">
+                    <TextBlock x:Name="Text7" Width="100" Text="text1"/>
+                    <TextBlock x:Name="Text8" Width="100" Text="text2"/>
+                    <TextBlock x:Name="Text9" Width="100" Text="text3"/>
+                </StackPanel>
+            </StackPanel> <!-- ボタン -->
+        </StackPanel> <!-- 上半分 -->
+        <StackPanel Orientation="Horizontal">
+            <StackPanel x:Name="Evaluater" Orientation="Vertical" Margin="5" >
+                <Button x:Name="LearnButton" Content="Set Parameter" Click="LearnButton_Click"/>
+                <GroupBox x:Name="CheckBox" Margin="2">
+                    <StackPanel>
+                        <RadioButton x:Name="HeadCheck" Content="Head" Checked="RadioButton_Checked"/>
+                        <RadioButton x:Name="HandCheck" Content="Hand" IsChecked="True" Checked="RadioButton_Checked"/>
+                        <RadioButton x:Name="FootCheck" Content="Foot" Checked="RadioButton_Checked"/>
+                    </StackPanel>
+                </GroupBox>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Max:" />
+                    <TextBlock x:Name="MaxValue"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Min:" />
+                    <TextBlock x:Name="MinValue"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
+                    <Slider x:Name="MaxSlider" ValueChanged="MaxSlider_ValueChanged"
+                            Orientation="Vertical" Height="150" HorizontalAlignment="Center" Margin="10,5,5,5"/>
+                    <Slider x:Name="MinSlider" ValueChanged="MinSlider_ValueChanged"
+                            Orientation="Vertical" Height="150" HorizontalAlignment="Center" Margin="10,5,5,5"/>
+                </StackPanel>
+            </StackPanel> <!-- Evaluater -->
+            <StackPanel x:Name="SavePanel" Visibility="Hidden">
+                <Button x:Name="AddButton" Content="Add to List" Click="AddButton_Click"  Margin="5"/>
+                <ComboBox x:Name="MethodBox" Width="100"  SelectionChanged="MethodBox_SelectionChanged" Margin="2"/>
+                <Button x:Name="Save" Content="Save" Click="Save_Click" Margin="5"/>
+                <ListBox x:Name="ParameterListBox" Width="100" Height="200" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text ="{Binding Joint}" Margin="1" FontWeight="Bold"/>
+                                    <TextBlock Text ="{Binding Type}" Margin="2.5,0,0,0" FontWeight="Bold"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Max}" Margin="1,0,0,0"/>
+                                <TextBlock Text="{Binding Min}" Margin="1,0,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel> <!-- List -->
+            <Grid>
+                <oxy:Plot Name="Plot" Width="600" Margin="5" Visibility="Hidden">
+                    <oxy:Plot.Series>
+                        <oxy:LineSeries x:Name="DataSeries"/>
+                        <oxy:LineSeries x:Name="MaxSeries"/>
+                        <oxy:LineSeries x:Name="MinSeries"/>
+                    </oxy:Plot.Series>
+                </oxy:Plot>
+                <Canvas x:Name="CanvasTarget" Height="160"/>
+            </Grid>
+        </StackPanel> <!-- 学習関連 -->
+    </StackPanel> <!-- 全体 -->
 </Window>

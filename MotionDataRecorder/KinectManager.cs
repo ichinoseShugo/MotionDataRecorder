@@ -11,6 +11,7 @@ using System.Windows.Shapes;
 using Microsoft.Kinect;
 using LightBuzz.Vitruvius;
 using System.Windows.Media.Media3D;
+using System.Threading.Tasks;
 
 namespace MotionDataRecorder
 {
@@ -20,7 +21,8 @@ namespace MotionDataRecorder
 
         public KinectSensor kinect;
         public KinectRecorder record;
-        private KinectGesture gesture;
+        public KinectGesture gesture;
+        private KinectJointFilter filter;
 
         private ColorFrameReader colorFrameReader;
         private FrameDescription colorFrameDesc;
@@ -29,8 +31,11 @@ namespace MotionDataRecorder
         private BodyFrameReader bodyFrameReader;
         private Body[] bodies;
         private Body user;
+        private float[] joints;
 
         EventHandler<ColorFrameArrivedEventArgs> handler = null;
+
+        static public System.Diagnostics.Stopwatch kinectTimer = new System.Diagnostics.Stopwatch();
 
         public KinectManager(MainWindow mainWindow)
         {
@@ -43,6 +48,8 @@ namespace MotionDataRecorder
         private void InitializeKinect()
         {
             kinect = KinectSensor.GetDefault();
+            filter = new KinectJointFilter();
+            filter.Init();
             if (kinect == null)
             {
                 throw new Exception("Kinectを開けません");
@@ -51,7 +58,7 @@ namespace MotionDataRecorder
             //選択デバイス情報を更新
             Constants.deviceSelect = Constants.SET_KINECT;
             record = new KinectRecorder(main);
-            gesture = new KinectGesture();
+            gesture = new KinectGesture(main);
 
             //抜き差しイベントを設定
             kinect.IsAvailableChanged += Kinect_IsAvailableChanged;
@@ -65,7 +72,11 @@ namespace MotionDataRecorder
             PrepareFrame();
 
             Constants.kinectImageRate = colorFrameDesc.Height / main.ImageColor.Height;
+            kinectTimer.Start();
         }
+
+        //int[] time = new int[] { 0, 960, 1920, 2400, 2880, 3840, 4320, 4800, 5280, 5760, 6240, 6720, 7200, 7680, 8160, 8640, 9120, 9600, 10080, 10560, 11040, 11520, 12000, 12480, 12960, 13440, 13920, 14400, 14880, 15360, 15840, 16320, 16800, 17280, 17760, 18240, 18720 };
+        int[] time = Midi.mill;
 
         private void PrepareFrame()
         {
@@ -103,10 +114,9 @@ namespace MotionDataRecorder
                 //main.ImageColor.Source = new BitmapImage(new Uri("/Resources/GreyBack.png", UriKind.Relative)); // イメージを初期化する
             }
         }
-
+        
         private void ColorFrameReader_FrameArrived(object sender, ColorFrameArrivedEventArgs e)
         {
-            main.Text1.Text = e.FrameReference.RelativeTime.TotalMilliseconds.ToString();
             // カラーフレームを取得する
             using (var colorFrame = e.FrameReference.AcquireFrame())
             {
@@ -142,6 +152,7 @@ namespace MotionDataRecorder
                 {
                     bodycount++;
                     user = body;
+                    filter.UpdateFilter(user);
                 }
             }
             if (bodycount > 1)
@@ -152,18 +163,7 @@ namespace MotionDataRecorder
             //処理を記述
             if(user != null)
             {
-                //RecogGesture();
-                RecordJoints();
-                DrawSkeleton();
-            }
-        }
-
-        private void DrawSkeleton()
-        {
-            main.CanvasBody.Children.Clear();
-            foreach (var joint in user.Joints)
-            {
-                DrawEllipse(joint.Value.Position, 10, Brushes.Green);
+                Processing();
             }
         }
 
@@ -180,16 +180,78 @@ namespace MotionDataRecorder
             }
         }
 
-        private void RecordJoints()
+        #region Processing
+
+        public static bool GestureIsRecognized = false;
+        private void Processing()
         {
-            if (main.BodyCheck.IsChecked == true) record.Write(user);
-            if (main.HandCheck.IsChecked == true) record.Write(user, JointType.HandRight);
+            CameraSpacePoint[] p = filter.GetFilteredJoints();
+            joints = Norm.ToModel(p);
+
+            if (GestureIsRecognized) RecogGesture(joints);
+            RecordJoints(joints);
+
+            DrawSkeleton(p);
         }
 
-        private void RecogGesture()
+        private void RecordJoints(float[] joints)
         {
-            gesture.RelativeHandTap(user);
+            record.Write(joints);
         }
+
+        private void RecogGesture(float[] joints)
+        {
+            /*
+             int index = 0;
+                    foreach (var j in user.Joints)
+                    {
+                        joints[index++] = j.Value.Position.X;
+                        joints[index++] = j.Value.Position.Y;
+                        joints[index++] = j.Value.Position.Y;
+                    }
+             */
+            switch (main.GestureBox.SelectedIndex)
+            {
+                case 0:
+                    gesture.E1_1(joints);
+                    break;
+                case 1:
+                    gesture.E1_2(joints);
+                    break;
+                case 2:
+                    gesture.E2_1_1(joints);
+                    break;
+                case 3:
+                    gesture.E2_1_2(joints);
+                    break;
+                case 4:
+                    gesture.E2_2_1(joints);
+                    break;
+                case 5:
+                    gesture.E2_2_2(joints);
+                    break;
+                case 6:
+                    gesture.E2_3_1(joints);
+                    break;
+                case 7:
+                    gesture.E2_3_2(joints);
+                    break;
+                default:
+                    gesture.Recog(joints);
+                    break;
+            }
+        }
+        
+        private void DrawSkeleton(CameraSpacePoint[] joints)
+        {
+            main.CanvasBody.Children.Clear();
+            foreach (var joint in joints)
+            {
+                DrawEllipse(joint, 10, Brushes.White);
+            }
+        }
+
+        #endregion
 
         /// <summary> 画面に円を表示 </summary>
         private void DrawEllipse(CameraSpacePoint position, int R, Brush brush)
@@ -215,8 +277,8 @@ namespace MotionDataRecorder
 
         public void StartFrameRead()
         {
-            //PrepareFrame();
-            kinect.Open();
+            PrepareFrame();
+            //kinect.Open();
         }
 
         public void StopFrameRead()

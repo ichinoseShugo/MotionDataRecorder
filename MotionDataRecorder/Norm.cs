@@ -19,9 +19,22 @@ namespace MotionDataRecorder
         static public int ShoulderRight = 24; //9 → (9-1)*3
         static public int HipLeft = 36; //13
         static public int HipRight = 48; //17
+        
+        static public int ElbowRight = 27;
+        static public int HandRight = 33;
 
-        static public float[] ToModel(float[] joints)
+        static public int ElbowLeft = 15;
+        static public int HandLeft = 21;
+
+        static public float[] ChangeBaseVec(float[] joints)
         {
+            /*
+            for(int i=0; i<joints.Length; i++)
+            {
+                joints[i] -= joints[i % 3];
+            }
+            */
+
             float[] array = new float[joints.Length];
             float[] spine_b = ToJoint(joints, SpineBase);
             float[] spine_m = ToJoint(joints, SpineMid);
@@ -55,6 +68,20 @@ namespace MotionDataRecorder
             }
 
             return array;
+        }
+
+        static public float[] ToModel(CameraSpacePoint[] user)
+        {
+            float[] joints = new float[75];
+            int index = 0;
+            var center = user[(int)JointType.SpineBase];
+            foreach (var joint in user)
+            {
+                joints[index++] = joint.X - center.X;
+                joints[index++] = joint.Y - center.Y;
+                joints[index++] = joint.Z - center.Z;
+            }
+            return ChangeBaseVec(joints);
         }
 
         static private float[] ToJoint(float[] joints, int jointType)

@@ -27,17 +27,17 @@ namespace MotionDataRecorder
         public string fileName = "";
         /// <summary> 時間計測用ストップウォッチ </summary>
         public System.Diagnostics.Stopwatch recTimer = new System.Diagnostics.Stopwatch();
-        public System.Diagnostics.Stopwatch m = null;
 
-        private int stoptime;
+        public static int stoptime;
 
         private MainWindow main;
 
+        public static bool writable = false;
+
         public KinectRecorder(MainWindow mainWindow)
         {
-            stoptime = Midi.mill[Midi.mill.Length-1] + Midi.resolution;
+            stoptime = Midi.stoptime;
             main = mainWindow;
-            m = main.metronomo.stopwatch;
             Console.WriteLine("record length = " + stoptime);
         }
 
@@ -45,12 +45,18 @@ namespace MotionDataRecorder
         {
             var dt = DateTime.Now;
             string now = dt.Year + Digits(dt.Month) + Digits(dt.Day) + Digits(dt.Hour) + Digits(dt.Minute) + Digits(dt.Second);
-            string version = "";
-            if (main.BodyCheck.IsChecked == true) version = "full";
-            if (main.HandCheck.IsChecked == true) version = "hand";
-            fileName = "../../../Data/Kinect/" + now + "_" + main.NameBox.Text + "_" + version + ".csv";
+            fileName = "../../../Data/Kinect/" + now + "_" + main.NameBox.Text + ".csv";
             kinectWriter = new StreamWriter(fileName , true);
-            recTimer.Start();
+            //recTimer.Start();
+            Console.WriteLine("start record");
+        }
+
+        public void StartRecordExperiment()
+        {
+            var dt = DateTime.Now;
+            string now = dt.Year + Digits(dt.Month) + Digits(dt.Day) + Digits(dt.Hour) + Digits(dt.Minute) + Digits(dt.Second);
+            fileName = "../../../Data/Kinect/experiment/" + now + "_" + main.NameBox.Text + "_ex"+ main.GestureBox.SelectedIndex+".csv";
+            kinectWriter = new StreamWriter(fileName, true);
             Console.WriteLine("start record");
         }
 
@@ -61,48 +67,42 @@ namespace MotionDataRecorder
             else return date.ToString();
         }
 
-        public void Write(Body body)
+        public void Write(float[] joints)
         {
-            if (m.ElapsedMilliseconds > stoptime)
+            if (Metronomo.stopwatch.ElapsedMilliseconds > stoptime)
             {
-                //StopRecord();
-                main.RecordButton.IsChecked = false;
+                StopRecord();
             }
-            if (kinectWriter == null) return;
-            kinectWriter.Write(m.ElapsedMilliseconds);
-            foreach (var joint in body.Joints)
+            if (!writable) return;
+            kinectWriter.Write(Metronomo.stopwatch.ElapsedMilliseconds);
+            for (int i = 0; i < joints.Length / 3; i++)
             {
-                var p = joint.Value.Position;
-                kinectWriter.Write("," + p.X + "," + p.Y + "," + p.Z);
+                kinectWriter.Write("," + joints[i * 3] + "," + joints[i * 3 + 1] + "," + joints[i * 3 + 2]);
             }
             kinectWriter.WriteLine();
         }
 
-        public void Write(Body body, JointType jtype)
+        public void Write(float[] joints,int jtype)
         {
-            if (m.ElapsedMilliseconds > stoptime)
+            if (Metronomo.stopwatch.ElapsedMilliseconds > stoptime)
             {
-                //StopRecord();
-                main.RecordButton.IsChecked = false;
+                StopRecord();
             }
-            if (kinectWriter == null) return;
-            //kinectWriter.Write(recTimer.ElapsedMilliseconds);
-            kinectWriter.Write(m.ElapsedMilliseconds);
-            var joint = body.Joints[jtype].Position;
-            kinectWriter.Write("," + joint.X + "," + joint.Y + "," + joint.Z);
+            if (!writable) return;
+            kinectWriter.Write(Metronomo.stopwatch.ElapsedMilliseconds);
+            kinectWriter.Write("," + joints[jtype] + "," + joints[jtype + 1] + "," + joints[jtype + 2]);
             kinectWriter.WriteLine();
         }
 
         public void StopRecord()
         {
-            //recTimer.Stop();
-            m.Stop();
+            writable = false;
             if (kinectWriter != null)
             {
                 kinectWriter.Close();
                 kinectWriter = null;
+                Console.WriteLine("stop record");
             }
-            Console.WriteLine("stop record");
         }
 
         public void Close()
@@ -119,5 +119,37 @@ namespace MotionDataRecorder
                 recTimer = null;
             }
         }
+
+        #region use body
+        public void Write(Body body)
+        {
+            if (Metronomo.stopwatch.ElapsedMilliseconds > stoptime)
+            {
+                //StopRecord();
+                main.RecordButton.IsChecked = false;
+            }
+            if (!writable) return;
+            kinectWriter.Write(Metronomo.stopwatch.ElapsedMilliseconds);
+            foreach (var joint in body.Joints)
+            {
+                var p = joint.Value.Position;
+                kinectWriter.Write("," + p.X + "," + p.Y + "," + p.Z);
+            }
+            kinectWriter.WriteLine();
+        }
+
+        public void Write(Body body, JointType jtype)
+        {
+            if (Metronomo.stopwatch.ElapsedMilliseconds > stoptime)
+            {
+                main.RecordButton.IsChecked = false;
+            }
+            if (!writable) return;
+            kinectWriter.Write(Metronomo.stopwatch.ElapsedMilliseconds);
+            var joint = body.Joints[jtype].Position;
+            kinectWriter.Write("," + joint.X + "," + joint.Y + "," + joint.Z);
+            kinectWriter.WriteLine();
+        }
+        #endregion
     }//class
 }//namespace

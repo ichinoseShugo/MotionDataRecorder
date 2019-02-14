@@ -129,6 +129,12 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>References\Midi\nextmidi.time.dll</HintPath>
     </Reference>
+    <Reference Include="OxyPlot, Version=1.0.0.0, Culture=neutral, PublicKeyToken=638079a8f0bd61e9, processorArchitecture=MSIL">
+      <HintPath>..\packages\OxyPlot.Core.1.0.0\lib\net45\OxyPlot.dll</HintPath>
+    </Reference>
+    <Reference Include="OxyPlot.Wpf, Version=1.0.0.0, Culture=neutral, PublicKeyToken=75e952ba404cdbb0, processorArchitecture=MSIL">
+      <HintPath>..\packages\OxyPlot.Wpf.1.0.0\lib\net45\OxyPlot.Wpf.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
@@ -151,15 +157,22 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Caliculater.cs" />
+    <Compile Include="Chord.cs" />
     <Compile Include="Constants.cs" />
+    <Compile Include="DataViewer.cs" />
+    <Compile Include="JT.cs" />
     <Compile Include="KinectGesture.cs" />
+    <Compile Include="KinectJointFilter.cs" />
     <Compile Include="KinectRecorder.cs" />
     <Compile Include="KinectReplay.cs" />
+    <Compile Include="MethodList.cs" />
     <Compile Include="Metronomo.cs" />
     <Compile Include="Midi.cs" />
     <Compile Include="MotionLearner.cs" />
     <Compile Include="Norm.cs" />
-    <Compile Include="RealSenseManager.cs" />
+    <Compile Include="ParameterListItem.cs" />
+    <Compile Include="RecordData.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -202,6 +215,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="chord2number.txt" />
     <Content Include="libpxccpp2c.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

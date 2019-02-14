@@ -12,7 +12,7 @@ namespace MotionDataRecorder
     public class Metronomo
     {
         private MainWindow main;
-        public System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+        static public System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         private int index = 0;
         private static int[] times;
 
@@ -21,6 +21,7 @@ namespace MotionDataRecorder
         private float Y;
         private float Yspace;
 
+        int stoptime_m;
         public Metronomo(MainWindow mainWindow)
         {
             main = mainWindow;
@@ -30,6 +31,8 @@ namespace MotionDataRecorder
             Xspace = (float)main.CanvasTarget.ActualWidth / 6;
             Y = (float)main.CanvasTarget.ActualHeight / 4;
             Yspace = (float)main.CanvasTarget.ActualHeight / 12;
+
+            stoptime_m = (int)(Midi.mill[Midi.mill.Length - 1] + Midi.resolution * Midi.secPerTick * 1000);
         }
 
         public void Start()
@@ -40,11 +43,38 @@ namespace MotionDataRecorder
             InitCanvas();
         }
 
-        public void Stop()
+        public void Start2()
         {
-            CompositionTarget.Rendering -= CompositionTarget_Rendering;
-            stopwatch.Stop();
-            //Midi.StopMidi();
+            PlayMidi2();
+            KinectRecorder.writable = true;
+            UpdateNoteIndex();
+        }
+
+        public async void PlayMidi2()
+        {
+            await Task.Run(() =>
+            {
+                Midi.PlayMidi(Midi.BGMdomain);
+            });
+        }
+
+        static public int[] UpdateTiming = { 4000, 6000, 8000, 10000, 12000, 14000, 16000, 18000, 20000, 22000, 24000, 26000, 28000, 30000, 32000, 34000};
+        static public async void UpdateNoteIndex()
+        {
+            stopwatch.Start();
+            await Task.Run(() =>
+            {
+                for (int i = 0; i < UpdateTiming.Length; i++)
+                {
+                    int waitTime = (int)(UpdateTiming[i] - stopwatch.ElapsedMilliseconds);
+                    System.Threading.Thread.Sleep(waitTime);
+                    if(Chord.NoteIndex < Chord.NoteList.Length - 1)Chord.NoteIndex++;
+                    //Console.WriteLine("nindex :"+ Chord.NoteIndex);
+                }
+                int t = (int)(UpdateTiming[UpdateTiming.Length - 1] + 2000 - stopwatch.ElapsedMilliseconds);
+                System.Threading.Thread.Sleep(t);
+                KinectRecorder.writable = false;
+            });
         }
 
         private async void StartWatch()
@@ -52,17 +82,30 @@ namespace MotionDataRecorder
             await Task.Run(() =>
             {
                 stopwatch.Start();
+                KinectRecorder.writable = true;
             });
         }
 
-        private async void PlayMidi()
+        public async void Stop()
+        {
+            CompositionTarget.Rendering -= CompositionTarget_Rendering;
+            await Task.Run(() =>
+            {
+                int waitTime = (int)(stoptime_m - stopwatch.ElapsedMilliseconds);
+                System.Threading.Thread.Sleep(waitTime);
+                //stopwatch.Stop();
+                //Console.WriteLine(waitTime);
+            });
+        }
+        
+        public async void PlayMidi()
         {
             await Task.Run(() =>
             {
                 Midi.PlayMidi();
             });
         }
-        
+
         private void CompositionTarget_Rendering(object sender, EventArgs e)
         {
             if (index >= 32)
@@ -101,13 +144,16 @@ namespace MotionDataRecorder
             }
         }
 
-        #region sleep
-        int[] time = new int[] { 0, 960, 1920, 2400, 2880, 3840, 4320, 4800, 5280, 5760, 6240, 6720, 7200, 7680, 8160, 8640, 9120, 9600, 10080, 10560, 11040, 11520, 12000, 12480, 12960, 13440, 13920, 14400, 14880, 15360, 15840, 16320, 16800, 17280, 17760, 18240, 18720 };
-        private async void StartNoteBySleep()
+        #region midi
+        //int[] time = new int[] { 0, 960, 1920, 2400, 2880, 3840, 4320, 4800, 5280, 5760, 6240, 6720, 7200, 7680, 8160, 8640, 9120, 9600, 10080, 10560, 11040, 11520, 12000, 12480, 12960, 13440, 13920, 14400, 14880, 15360, 15840, 16320, 16800, 17280, 17760, 18240, 18720 };
+        static int[] time = Midi.mill;
+        static public async void StartNoteBySleep()
         {
+            stopwatch.Start();
+            Midi.OnNote(11, 80, 240);
             await Task.Run(() =>
             {
-                for (int i = 0; i < time.Length; i++)
+                for (int i = 1; i < time.Length; i++)
                 {
                     int waitTime = (int)(time[i] - stopwatch.ElapsedMilliseconds);
                     System.Threading.Thread.Sleep(waitTime);
